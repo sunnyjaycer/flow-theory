@@ -68,7 +68,6 @@ contract LendingCore is SuperAppBase {
     mapping(address => BorrowerProfile) public borrowerStatus;
 
 
-
     constructor (
         ISuperfluid host,
         IConstantFlowAgreementV1 cfa,
@@ -113,11 +112,32 @@ contract LendingCore is SuperAppBase {
     /// @notice Allows borrower to take out loan and starts interest payment
     function borrow(uint256 borrowAmount) public {
 
+        // get interest flow rate
+        int96 interestFlowRate = 10; // arbitrary
+        // ( (borrowAmount * interestRate) / GRANULARITY ) / 365 days;
+
+        // // pull appropriate interest payment flow
+        // cfaLib.createFlowByOperator(
+        //     msg.sender,     // borrower
+        //     address(this),  // lending contract 
+        //     borrowToken,
+        //     interestFlowRate
+        // );
+
+        cfaLib.cfa.createFlowByOperator(borrowToken, msg.sender, address(this), interestFlowRate, "0x");
+
+        // provide loan
+
+        // set borrower state 
     }
 
     /// @notice Allows borrower to repay loan and updates interest payment
     function repay(uint256 repayAmount) public {
+        // update/delete to appropriate interest payment flow
 
+        // pull tokens to repay loan
+
+        // set borrower state
     }
 
     /// @notice Allows borrower to deposit collateral
@@ -153,5 +173,115 @@ contract LendingCore is SuperAppBase {
     function getCollateralAmount(address borrower) public view {
 
     }
+
+    // getTokenPrice
+
+    // --------------------------------------------------------------
+    // Super Agreement Callbacks
+    // --------------------------------------------------------------
+
+    /**
+     * @dev Super App callback responding the creation of a CFA to the app
+     *
+     * Response logic in _createFlow
+     */
+    function afterAgreementCreated(
+        ISuperToken _superToken,
+        address _agreementClass,
+        bytes32, // _agreementId,
+        bytes calldata _agreementData,
+        bytes calldata ,// _cbdata,
+        bytes calldata _ctx
+    )
+        external override
+        onlyExpected(_superToken, _agreementClass)
+        onlyHost
+        returns (bytes memory newCtx)
+    {
+     
+        return _createFlow(_agreementData, _ctx);
+    
+    }
+
+    /**
+     * @dev Super App callback responding to the update of a CFA to the app
+     * 
+     * Response logic in _updateFlow
+     */
+    function afterAgreementUpdated(
+        ISuperToken _superToken,
+        address _agreementClass,
+        bytes32 ,//_agreementId,
+        bytes calldata _agreementData,
+        bytes calldata ,//_cbdata,
+        bytes calldata _ctx
+    )
+        external override
+        onlyExpected(_superToken, _agreementClass)
+        onlyHost
+        returns (bytes memory newCtx)
+    {
+        
+        return _updateFlow(_agreementData, _ctx);
+        
+    }
+
+    /**
+     * @dev Super App callback responding the ending of a CFA to the app
+     * 
+     * Response logic in _deleteFlow
+     */
+    function afterAgreementTerminated(
+        ISuperToken _superToken,
+        address _agreementClass,
+        bytes32 ,//_agreementId,
+        bytes calldata _agreementData,
+        bytes calldata ,//_cbdata,
+        bytes calldata _ctx
+    )
+        external override
+        onlyHost
+        returns (bytes memory newCtx)
+    {
+        // According to the app basic law, we should never revert in a termination callback
+        if (!_isValidToken(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
+
+        return _deleteFlow(_agreementData, _ctx);
+
+    }
+
+    function _isValidToken(ISuperToken superToken) private view returns (bool) {
+        return ISuperToken(superToken) == borrowToken;
+    }
+
+    function _isCFAv1(address agreementClass) private view returns (bool) {
+        return ISuperAgreement(agreementClass).agreementType()
+            == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
+    }
+
+    modifier onlyHost() {
+        require(msg.sender == address(cfaLib.host), "RedirectAll: support only one host");
+        _;
+    }
+
+    modifier onlyExpected(ISuperToken superToken, address agreementClass) {
+        require(_isValidToken(superToken), "RedirectAll: not accepted token");
+        require(_isCFAv1(agreementClass), "RedirectAll: only CFAv1 supported");
+        _;
+    }
+
+    function _createFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
+
+    }
+
+    function _updateFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
+        
+    }
+
+    function _deleteFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
+        
+    }
+
+
 
 }

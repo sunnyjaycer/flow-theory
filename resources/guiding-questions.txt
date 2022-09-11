@@ -1,0 +1,44 @@
+# User research
+
+## Do you have user research or are you basing this idea’s problem statement on your own experience?
+
+Basically, Flow Theory aims to experiment on how borrowers and lenders in DeFi would behave if the funds were literally coursing from
+interest payment to lender pockets. Would the instant receiving of actual interest (as opposed to formulaic accrual that we see in 
+traditional DeFi protocols like Aave or Maker) make lenders more willing to offer better rates? If borrowers are actually paying for 
+the liquidity they've borrowed in real-time and compensating lenders for their risk immeadiately, I'd imagine this to be the case.
+
+## Are you wanting to do more research with this idea as we go along?
+
+I do, but probably won't have that much time to dive into the financial side of things as we go along. Maybe another time.
+
+# Product Goals
+
+## What will you consider a successful POC of flow theory for this hack?
+
+Successful deployment of POC contracts with a working frontend on Polygon and Optimism and have a couple borrowers that are sending the protocol interest revenue.
+
+## What is your requirements for a full POC in general? (if you know)
+
+Borrow/Repay/Withdraw and Deposit Collateral for borrower
+Deposit and Withdraw Liquidity for lender
+Should have 2 dashboards for both sides
+
+## Do you have long term goals for Flow theory or is this tool an experiment for a larger idea? is it a smalll piece of something else?
+
+It's a bit of an experiment. I want the concept to attract developers the way Supercard did and develop it in my spare time. The "big 
+picture" is the concept of real cashflow in DeFi.
+
+# Dashboard(s)
+
+## how many other dashboards are we making?
+
+We're making 2 dashboards for the borrower and lender.
+
+Is there going to be a user profile with stats and analytics, personally across other platforms and/or just for this platform?
+
+We'll just stick with the 2 dashs that a borrower can show up and check out their stats for.
+
+Where do you want to start building this? From the tool portion (below) or from the (multi) platform stats part?
+
+I'm good with starting with the Flow Theory design we've kicked off with: 
+https://www.figma.com/file/y0EqFO6JerR9LQ31Xu996S/Flow-Theory-Design?node-id=0%3A1
