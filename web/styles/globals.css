@@ -2,12 +2,13 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url(https://fonts.bunny.net/css?family=inter:100,200,300,400,500,600,700,800,900);
+
 html,
 body {
   padding: 0;
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto, Oxygen,
-    Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue, sans-serif;
+  margin: 8px;
+  font-family: Inter, Sans-Serif;
 }
 
 a {
@@ -19,7 +20,7 @@ a {
   box-sizing: border-box;
 }
 
-@media (prefers-color-scheme: dark) {
+/* @media (prefers-color-scheme: dark) {
   html {
     color-scheme: dark;
   }
@@ -27,4 +28,4 @@ a {
     color: white;
     background: black;
   }
-}
+} */
