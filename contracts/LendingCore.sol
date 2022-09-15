@@ -70,7 +70,6 @@ contract LendingCore is SuperAppBase {
 
     constructor (
         ISuperfluid host,
-        IConstantFlowAgreementV1 cfa,
         string memory registrationKey,
         address _owner,
         uint256 _interestRate,
@@ -95,6 +94,19 @@ contract LendingCore is SuperAppBase {
         liquidationPenalty = _liquidationPenalty;
         borrowToken = _borrowToken;
         collateralToken = _collateralToken;
+
+        uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
+            SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
+            SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
+            SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
+
+        // Register Super App with registration key or without if testnet deployment
+        if(bytes(registrationKey).length > 0) {
+            cfaLib.host.registerAppWithKey(configWord, registrationKey);
+        } else {
+            cfaLib.host.registerApp(configWord);
+        }
+
     }
 
     /// @notice Set the price of the borrow token
@@ -113,22 +125,28 @@ contract LendingCore is SuperAppBase {
     function borrow(uint256 borrowAmount) public {
 
         // get interest flow rate
-        int96 interestFlowRate = 10; // arbitrary
-        // ( (borrowAmount * interestRate) / GRANULARITY ) / 365 days;
+        int96 interestFlowRate = int96(
+            ( (int( uint(borrowAmount) ) * int( uint(interestRate) )) / int( uint(GRANULARITY) ) ) / 365 days
+        );
+        console.log(interestFlowRate);
 
-        // // pull appropriate interest payment flow
-        // cfaLib.createFlowByOperator(
-        //     msg.sender,     // borrower
-        //     address(this),  // lending contract 
-        //     borrowToken,
-        //     interestFlowRate
-        // );
+        // pull appropriate interest payment flow
+        cfaLib.createFlowByOperator(
+            msg.sender,     // borrower
+            address(this),  // lending contract 
+            borrowToken,
+            interestFlowRate
+        );
 
         cfaLib.cfa.createFlowByOperator(borrowToken, msg.sender, address(this), interestFlowRate, "0x");
 
         // provide loan
+        borrowToken.transfer(address(this), msg.sender, borrowAmount);
+        
 
         // set borrower state 
+        borrowerStatus[msg.sender].debtAmount += borrowAmount;
+
     }
 
     /// @notice Allows borrower to repay loan and updates interest payment

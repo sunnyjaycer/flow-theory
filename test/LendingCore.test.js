@@ -1,126 +1,167 @@
-const {
-  time,
-  loadFixture,
-} = require("@nomicfoundation/hardhat-network-helpers");
-const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
-const { expect } = require("chai");
+const { assert, expect } = require("chai");
 
-describe("Lock", function () {
-  // We define a fixture to reuse the same setup in every test.
-  // We use loadFixture to run this setup once, snapshot that state,
-  // and reset Hardhat Network to that snapshot in every test.
-  async function deployOneYearLockFixture() {
-    const ONE_YEAR_IN_SECS = 365 * 24 * 60 * 60;
-    const ONE_GWEI = 1_000_000_000;
+const { Framework } = require("@superfluid-finance/sdk-core");
+const TestTokenABI =  require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken.json");
 
-    const lockedAmount = ONE_GWEI;
-    const unlockTime = (await time.latest()) + ONE_YEAR_IN_SECS;
+const { ethers, web3 } = require("hardhat");
 
-    // Contracts are deployed using the first signer/account by default
-    const [owner, otherAccount] = await ethers.getSigners();
+const deployFramework = require("@superfluid-finance/ethereum-contracts/scripts/deploy-framework");
+const deployTestToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-test-token");
+const deploySuperToken = require("@superfluid-finance/ethereum-contracts/scripts/deploy-super-token");
 
-    const Lock = await ethers.getContractFactory("Lock");
-    const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
+// Instances
+let sf;                          // Superfluid framework API object
+let lendingCore;                 // spreader contract object
+let dai;                         // underlying token of daix
+let daix;                        // will act as borrow token - is a super token wrapper of dai
+let weth;                        // collateral token
 
-    return { lock, unlockTime, lockedAmount, owner, otherAccount };
-  }
+// Test Accounts
+let admin;      
+let alice;      
+let bob;
 
-  describe("Deployment", function () {
-    it("Should set the right unlockTime", async function () {
-      const { lock, unlockTime } = await loadFixture(deployOneYearLockFixture);
+// Constants
+const EXPECATION_DIFF_LIMIT = 10;    // sometimes the IDA distributes a little less wei than expected. Accounting for potential discrepency with 10 wei margin
+const ONE_PER_YEAR = 113218;
 
-      expect(await lock.unlockTime()).to.equal(unlockTime);
+const errorHandler = (err) => {
+  if (err) throw err;
+}
+
+before(async function () {
+
+    // get hardhat accounts
+    [admin, alice, bob] = await ethers.getSigners();
+
+
+    //// GETTING SUPERFLUID FRAMEWORK SET UP
+
+    // deploy the framework locally
+    await deployFramework(errorHandler, {
+        web3: web3,
+        from: admin.address,
+        // newTestResolver:true
     });
 
-    it("Should set the right owner", async function () {
-      const { lock, owner } = await loadFixture(deployOneYearLockFixture);
-
-      expect(await lock.owner()).to.equal(owner.address);
+    // initialize framework
+    sf = await Framework.create({
+        chainId: 31337,
+        provider: web3,
+        resolverAddress: process.env.RESOLVER_ADDRESS, // (empty)
+        protocolReleaseVersion: "test",
     });
 
-    it("Should receive and store the funds to lock", async function () {
-      const { lock, lockedAmount } = await loadFixture(
-        deployOneYearLockFixture
-      );
 
-      expect(await ethers.provider.getBalance(lock.address)).to.equal(
-        lockedAmount
-      );
+    //// DEPLOYING DAI and DAI wrapper super token (which will be our debt token)
+
+    // deploy a fake erc20 token
+    await deployTestToken(errorHandler, [":", "fDAI"], {
+        web3,
+        from: admin.address,
     });
 
-    it("Should fail if the unlockTime is not in the future", async function () {
-      // We don't use the fixture here because we want a different deployment
-      const latestTime = await time.latest();
-      const Lock = await ethers.getContractFactory("Lock");
-      await expect(Lock.deploy(latestTime, { value: 1 })).to.be.revertedWith(
-        "Unlock time should be in the future"
-      );
-    });
-  });
-
-  describe("Withdrawals", function () {
-    describe("Validations", function () {
-      it("Should revert with the right error if called too soon", async function () {
-        const { lock } = await loadFixture(deployOneYearLockFixture);
-
-        await expect(lock.withdraw()).to.be.revertedWith(
-          "You can't withdraw yet"
-        );
-      });
-
-      it("Should revert with the right error if called from another account", async function () {
-        const { lock, unlockTime, otherAccount } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // We can increase the time in Hardhat Network
-        await time.increaseTo(unlockTime);
-
-        // We use lock.connect() to send a transaction from another account
-        await expect(lock.connect(otherAccount).withdraw()).to.be.revertedWith(
-          "You aren't the owner"
-        );
-      });
-
-      it("Shouldn't fail if the unlockTime has arrived and the owner calls it", async function () {
-        const { lock, unlockTime } = await loadFixture(
-          deployOneYearLockFixture
-        );
-
-        // Transactions are sent using the first signer by default
-        await time.increaseTo(unlockTime);
-
-        await expect(lock.withdraw()).not.to.be.reverted;
-      });
+    // deploy a fake erc20 wrapper super token around the DAI token
+    await deploySuperToken(errorHandler, [":", "fDAI"], {
+        web3,
+        from: admin.address,
     });
 
-    describe("Events", function () {
-      it("Should emit an event on withdrawals", async function () {
-        const { lock, unlockTime, lockedAmount } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    // deploy a fake erc20 wrapper super token around the DAI token
+    daix = await sf.loadSuperToken("fDAIx");
 
-        await time.increaseTo(unlockTime);
+    dai = new ethers.Contract(
+        daix.underlyingToken.address,
+        TestTokenABI.abi,
+        admin
+    );
 
-        await expect(lock.withdraw())
-          .to.emit(lock, "Withdrawal")
-          .withArgs(lockedAmount, anyValue); // We accept any value as `when` arg
-      });
-    });
 
-    describe("Transfers", function () {
-      it("Should transfer the funds to the owner", async function () {
-        const { lock, unlockTime, lockedAmount, owner } = await loadFixture(
-          deployOneYearLockFixture
-        );
+    //// SETTING UP NON-ADMIN ACCOUNTS WITH DAIx
 
-        await time.increaseTo(unlockTime);
+    // minting test DAI
+    await dai.connect(admin).mint(admin.address, ethers.utils.parseEther("10000"));
+    await dai.connect(alice).mint(alice.address, ethers.utils.parseEther("10000"));
+    await dai.connect(bob).mint(bob.address, ethers.utils.parseEther("10000"));
 
-        await expect(lock.withdraw()).to.changeEtherBalances(
-          [owner, lock],
-          [lockedAmount, -lockedAmount]
-        );
-      });
-    });
-  });
+    // approving DAIx to spend DAI (Super Token object is not an ethers contract object and has different operation syntax)
+    await dai.connect(admin).approve(daix.address, ethers.constants.MaxInt256);
+    await dai.connect(alice).approve(daix.address, ethers.constants.MaxInt256);
+    await dai.connect(bob).approve(daix.address, ethers.constants.MaxInt256);
+
+    // Upgrading all DAI to DAIx
+    const daiXUpgradeOperation = daix.upgrade({
+      amount: ethers.utils.parseEther("10000").toString(),
+    })
+    await daiXUpgradeOperation.exec(admin);
+    await daiXUpgradeOperation.exec(alice);
+    await daiXUpgradeOperation.exec(bob);
+
+
+    // DEPLOYING WETH AS COLLATERAL TOKEN
+
+    const wethContractFactory = await ethers.getContractFactory(
+        TestTokenABI.abi,
+        TestTokenABI.bytecode
+    );
+
+    weth = await wethContractFactory.deploy(
+        "Wrapped Ether",
+        "WETH",
+        18
+    );
+
+    console.log("WETH deployed to:", weth.address);
+    
+    //// INITIALIZING SPREADER CONTRACT
+
+    const lendingCoreFactory = await ethers.getContractFactory(
+        "LendingCore",
+        admin
+    );
+
+    lendingCore = await lendingCoreFactory.deploy(
+        sf.settings.config.hostAddress, 
+        "",                                // registration key
+        admin.address,                     // owner
+        "10",                                // 1% APR
+        "1500",                              // Collateralization ratio
+        "100",                               // Liquidation Penalty
+        daix.address,                      // Setting DAIx as borrow token
+        weth.address                       // WETH as collateral token
+    );
+
+
+
+    //// SUBSCRIBING TO SPREADER CONTRACT'S IDA INDEX
+
+    // // subscribe to distribution (doesn't matter if this happens before or after distribution execution)
+    // const approveSubscriptionOperation = await sf.idaV1.approveSubscription({
+    //   indexId: "0",
+    //   superToken: daix.address,
+    //   publisher: spreader.address
+    // })
+    // await approveSubscriptionOperation.exec(alice);
+    // await approveSubscriptionOperation.exec(bob);
+
+    console.log("Set Up Complete! - TokenSpreader Contract Address:", lendingCore.address);
+
+});
+
+describe("TokenSpreader Test Sequence", async () => {
+
+    it("happy hour", async () => {
+        
+        // Set WETH price to 1500
+
+        // Set DAI price to 1
+
+        // Deposit 1 WETH
+
+        // Borrow 700 DAI
+
+        // Expect 7 DAI/year in interest charge
+
+    })
+
 });
