@@ -9,7 +9,7 @@ export const Header = () => {
   const isBorrower = pathname.includes('borrower');
 
   return (
-    <header className="w-full flex items-center justify-between">
+    <header className="w-full flex items-center justify-between mb-8">
       <Link href="/">
         <a className="flex items-center gap-4" href="/">
           <div className="h-8 w-8 rounded-full bg-gray-400"></div>
