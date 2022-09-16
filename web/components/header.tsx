@@ -1,8 +1,9 @@
-import { ConnectButton } from '@rainbow-me/rainbowkit';
+// import { ConnectButton } from '@rainbow-me/rainbowkit';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ReactNode } from 'react';
 import { FlowTheoryLogo } from '../svg/flow-theory-logo';
+import { ConnectButton } from './connect-button';
 
 export const Header = () => {
   return (
