@@ -1,18 +1,23 @@
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import { ReactNode } from 'react';
+import { useCurrentDashboard } from '../hooks/use-current-dashboard';
 
 export const DashboardSelector = () => {
-  const { pathname } = useRouter();
-  const isLender = pathname.includes('lender');
-  const isBorrower = pathname.includes('borrower');
+  const currentDashboard = useCurrentDashboard();
 
   return (
     <div className="font-bold flex gap-2 max-w-[150px]">
-      <DashboardSelectorItem selected={isLender} href="/lender">
+      <DashboardSelectorItem
+        selected={currentDashboard === 'lender'}
+        href="/lender"
+      >
         Lend
       </DashboardSelectorItem>
-      <DashboardSelectorItem selected={isBorrower} href="/borrower">
+      <DashboardSelectorItem
+        selected={currentDashboard === 'borrower'}
+        href="/borrower"
+      >
         Borrow
       </DashboardSelectorItem>
     </div>

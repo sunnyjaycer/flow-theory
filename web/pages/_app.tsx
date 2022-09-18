@@ -7,6 +7,7 @@ import { chain, configureChains, createClient, WagmiConfig } from 'wagmi';
 import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { publicProvider } from 'wagmi/providers/public';
 import { DashboardSelector } from '../components/dashboard-selector';
+import { Sidebar } from '../components/sidebar';
 
 const { chains, provider } = configureChains(
   [chain.mainnet, chain.polygon, chain.optimism, chain.arbitrum],
@@ -30,7 +31,12 @@ function MyApp({ Component, pageProps }: AppProps) {
       <RainbowKitProvider chains={chains}>
         <Header />
         <DashboardSelector />
-        <Component {...pageProps} />
+        <div className="flex mt-16">
+          <Sidebar />
+          <div className="flex-1">
+            <Component {...pageProps} />
+          </div>
+        </div>
       </RainbowKitProvider>
     </WagmiConfig>
   );

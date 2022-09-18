@@ -1,3 +1,6 @@
+import { PrimaryButton } from '../components/primary-button';
+import { PlusIcon } from '../svg/plus-icon';
+
 const Borrower = () => {
   const borrowedAmount = 0;
 
@@ -11,9 +14,16 @@ const Borrower = () => {
 const NoBorrows = () => {
   return (
     <div>
-      <div className="w-4/6 mx-auto h-32 p-16 flex items-center border-gray-400 border-2 rounded-2xl border-dotted text-gray-400">
+      <div className="w-4/6 mx-auto h-32 p-16 flex gap-4 items-center border-gray-400 border-2 rounded-2xl border-dotted text-gray-400">
         <span>No Borrows</span>
-        <button>Borrow</button>
+        <PrimaryButton>
+          <div className="flex items-center gap-2">
+            <div className="mb-1">
+              <PlusIcon />
+            </div>
+            Deposit Collateral
+          </div>
+        </PrimaryButton>
       </div>
     </div>
   );
