@@ -55,12 +55,12 @@ const NoBorrows = ({
 const BorrowDialog = ({
   showDialog,
   closeDialog,
-  approve,
 }: {
   showDialog: boolean;
   closeDialog: VoidFunction;
-  approve: VoidFunction;
 }) => {
+  const approve = () => {};
+
   return (
     <Dialog
       isOpen={showDialog}
