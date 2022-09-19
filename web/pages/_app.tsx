@@ -1,5 +1,6 @@
-import '../styles/globals.css';
+import '@reach/dialog/styles.css';
 import '@rainbow-me/rainbowkit/styles.css';
+import '../styles/globals.css';
 import type { AppProps } from 'next/app';
 import { Header } from '../components/header';
 import { getDefaultWallets, RainbowKitProvider } from '@rainbow-me/rainbowkit';
@@ -31,7 +32,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       <RainbowKitProvider chains={chains}>
         <Header />
         <DashboardSelector />
-        <div className="flex mt-16">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-0 mt-16 items-center">
           <Sidebar />
           <div className="flex-1">
             <Component {...pageProps} />

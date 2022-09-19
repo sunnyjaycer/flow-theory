@@ -13,6 +13,7 @@ module.exports = {
         'blue--3': 'hsla(238, 14%, 70%, 1)',
         'blue-0': 'hsla(230, 34%, 27%, 1)',
         'blue-3': 'hsla(241, 13%, 14%, 1)',
+        background: 'hsla(238, 12%, 11%, 1)',
       },
     },
   },
