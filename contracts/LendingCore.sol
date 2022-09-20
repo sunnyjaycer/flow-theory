@@ -44,10 +44,11 @@ contract LendingCore is SuperAppBase {
     uint256 public liquidationPenalty;
 
     /// @notice Token being borrowed
-    ISuperToken public borrowToken;
-    /// @notice Price of borrow token
+    ISuperToken public debtToken;
+    
+    /// @notice Price of debt token
     ///         Denominated in GRANULARITY. So, 1000 is $1
-    uint256 public borrowTokenPrice;
+    uint256 public debtTokenPrice;
 
     /// @notice Token being used as collateral
     IERC20 public collateralToken;
@@ -65,7 +66,13 @@ contract LendingCore is SuperAppBase {
     }
 
     /// @notice mapping addresses to borrower statuses
-    mapping(address => BorrowerProfile) public borrowerStatus;
+    mapping(address => BorrowerProfile) public borrowerProfiles;
+
+    /// @notice when someone does a first-time borrow
+    event NewLoan(address borrower);
+
+    /// @notice when someone fully repays debt
+    event FullyRepaid(address borrower);
 
 
     constructor (
@@ -75,7 +82,7 @@ contract LendingCore is SuperAppBase {
         uint256 _interestRate,
         uint256 _collateralizationRatio,
         uint256 _liquidationPenalty,
-        ISuperToken _borrowToken,
+        ISuperToken _debtToken,
         IERC20 _collateralToken
     ) {
 
@@ -92,7 +99,7 @@ contract LendingCore is SuperAppBase {
         interestRate = _interestRate;
         collateralizationRatio = _collateralizationRatio;
         liquidationPenalty = _liquidationPenalty;
-        borrowToken = _borrowToken;
+        debtToken = _debtToken;
         collateralToken = _collateralToken;
 
         uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
@@ -109,10 +116,163 @@ contract LendingCore is SuperAppBase {
 
     }
 
-    /// @notice Set the price of the borrow token
+    /// @notice Allows borrower to increase debt and adjusts interest payment
+    /// @dev Borrow must have given LendingCore ACL permissions
+    function borrow(uint256 borrowAmount) public {
+
+        // update borrower state 
+        borrowerProfiles[msg.sender].debtAmount += borrowAmount;
+
+        // get interest per-second flow rate as debt * apr / 365 days 
+        int96 interestFlowRate = int96(
+            ( (int( uint(borrowerProfiles[msg.sender].debtAmount) ) * int( uint(interestRate) )) / int( uint(GRANULARITY) ) ) / 365 days
+        );
+        console.log("Interest Flow Rate:");
+        console.logInt(interestFlowRate);
+
+        (,int96 flowRate,,) = cfaLib.cfa.getFlow(
+            debtToken,
+            msg.sender,
+            address(this)
+        );
+
+        // if no current interest payment flow exists...
+        if( flowRate == 0 ) {
+
+            // create appropriate interest payment flow
+            cfaLib.createFlowByOperator(
+                msg.sender,     // borrower
+                address(this),  // lending contract 
+                debtToken,
+                interestFlowRate
+            );
+
+            emit NewLoan(msg.sender);
+
+        } else {
+
+            // update to new appropriate interest payment flow
+            cfaLib.updateFlowByOperator(
+                msg.sender,     // borrower
+                address(this),  // lending contract 
+                debtToken,
+                interestFlowRate
+            );
+
+        }
+
+        // provide loan
+        debtToken.transfer(msg.sender, borrowAmount);
+
+    }
+
+    /// @notice Allows borrower to repay loan and updates interest payment
+    function repay(uint256 repayAmount) public {
+        // pull tokens to repay loan
+        debtToken.transferFrom(msg.sender, address(this), repayAmount);
+
+        // update borrower state
+        borrowerProfiles[msg.sender].debtAmount -= repayAmount;
+
+        // get interest flow rate
+        int96 interestFlowRate = int96(
+            ( (int( uint(borrowerProfiles[msg.sender].debtAmount) ) * int( uint(interestRate) )) / int( uint(GRANULARITY) ) ) / 365 days
+        );
+        console.log("Interest Flow Rate:");
+        console.logInt(interestFlowRate);
+
+        // if new interest payment should be zero...
+        if ( interestFlowRate == 0 ) {
+
+            // delete payment flow
+            cfaLib.deleteFlowByOperator(
+                msg.sender,    // borrower
+                address(this), // lending contract
+                debtToken
+            );
+
+            emit FullyRepaid(msg.sender);
+
+        } else {
+
+            // update to new appropriate interest payment flow
+            cfaLib.updateFlowByOperator(
+                msg.sender,     // borrower
+                address(this),  // lending contract 
+                debtToken,
+                interestFlowRate
+            );
+
+        }
+
+    }
+    // random: ask Josh about how he learned about comp sci principles
+
+
+    /// @notice Allows borrower to deposit collateral
+    function depositCollateral(uint256 depositAmount) public {
+        // Pull collateral from borrower
+        collateralToken.transferFrom(msg.sender, address(this), depositAmount);
+
+        // update borrower state
+        borrowerProfiles[msg.sender].collateralAmount += depositAmount;
+    }
+
+    /// @notice Allows borrower to withdraw collateral
+    function withdrawCollateral(uint256 withdrawAmount) public {
+        // update borrower state
+        borrowerProfiles[msg.sender].collateralAmount -= withdrawAmount;
+
+        // must not be withdrawing into undercollateralization
+        require(getCollateralizationRatio(msg.sender) >= collateralizationRatio, "would be undercollateralized");
+
+        // Transfer collateral back to borrower
+        collateralToken.transferFrom(msg.sender, address(this), withdrawAmount);
+
+    }
+
+    /// @notice Lets anyone liquidate a borrower who has fallen below permitted collateralization ratio
+    function liquidate(address borrower) public {
+
+        // must be undercollateralized
+        require(getCollateralizationRatio(msg.sender) < collateralizationRatio, "not undercollateralized");
+
+        // Get amount of collateral that will be liquidated...
+        // Debt denominated in collateral token = debt * (collateral price / debt price)
+        uint256 debtAmountDenominatedInCollateralToken = (borrowerProfiles[borrower].debtAmount * collateralTokenPrice) / debtTokenPrice;
+        // Amount to be liquidated = Debt denominated in collateral token * liquidation penalty
+        uint256 liquidationAmountDenominatedInCollateralToken = (debtAmountDenominatedInCollateralToken * liquidationPenalty) / GRANULARITY;
+
+        // TODO: find what proper msg.sender is here in identifying liquidate being triggered in callback
+        // if liquidation is being triggered in deletion because of interest calculation, we just want to unwind loan and not penalize
+        if (msg.sender == address(this)) {
+            liquidationAmountDenominatedInCollateralToken = debtAmountDenominatedInCollateralToken;
+        } 
+
+        // if there's less collateral than required...
+        if (borrowerProfiles[borrower].collateralAmount < liquidationAmountDenominatedInCollateralToken) {
+            // transfer all the borrower collateral to the owner
+            collateralToken.transfer(owner, borrowerProfiles[borrower].collateralAmount);
+        
+        } else {
+            // transfer the collateral liquidation amount to the owner
+            collateralToken.transfer(owner, liquidationAmountDenominatedInCollateralToken);
+
+        }
+
+        // update borrower state
+        borrowerProfiles[borrower].collateralAmount = 0;
+        borrowerProfiles[borrower].debtAmount = 0;
+    }
+
+    // --------------------------------------------------------------
+    // Setters
+    // --------------------------------------------------------------
+
+    /// @notice Set the price of the debt token
     /// @dev To be implemented with Tellor Oracle
-    function setBorrowTokenPrice(uint256 newBorrowTokenPrice) public {
-        borrowTokenPrice = newBorrowTokenPrice;
+    function setDebtTokenPrice(uint256 newDebtTokenPrice) public {
+        debtTokenPrice = newDebtTokenPrice;
     }
 
     /// @notice Set the price of the collateral token
@@ -121,78 +281,16 @@ contract LendingCore is SuperAppBase {
         collateralTokenPrice = newCollateralTokenPrice;
     }
 
-    /// @notice Allows borrower to take out loan and starts interest payment
-    function borrow(uint256 borrowAmount) public {
-
-        // get interest flow rate
-        int96 interestFlowRate = int96(
-            ( (int( uint(borrowAmount) ) * int( uint(interestRate) )) / int( uint(GRANULARITY) ) ) / 365 days
-        );
-        console.log(interestFlowRate);
-
-        // pull appropriate interest payment flow
-        cfaLib.createFlowByOperator(
-            msg.sender,     // borrower
-            address(this),  // lending contract 
-            borrowToken,
-            interestFlowRate
-        );
-
-        cfaLib.cfa.createFlowByOperator(borrowToken, msg.sender, address(this), interestFlowRate, "0x");
-
-        // provide loan
-        borrowToken.transfer(address(this), msg.sender, borrowAmount);
-        
-
-        // set borrower state 
-        borrowerStatus[msg.sender].debtAmount += borrowAmount;
-
-    }
-
-    /// @notice Allows borrower to repay loan and updates interest payment
-    function repay(uint256 repayAmount) public {
-        // update/delete to appropriate interest payment flow
-
-        // pull tokens to repay loan
-
-        // set borrower state
-    }
-
-    /// @notice Allows borrower to deposit collateral
-    function depositCollateral(uint256 depositAmount) public {
-
-    }
-
-    /// @notice Allows borrower to withdraw collateral
-    function withdrawCollateral(uint256 withdrawAmount) public {
-
-    }
-
-    /// @notice Lets anyone liquidate a borrower who has fallen below permitted collateralization ratio
-    function liquidate(address borrower) public {
-
-    }
-
     // --------------------------------------------------------------
     // Getters
     // --------------------------------------------------------------
 
-    /// @notice Get collateral-to-debt ratio of borrower
-    function getCollateralizationRatio(address borrower) public view {
-
+    /// @notice Get collateralization ratio of borrower
+    function getCollateralizationRatio(address borrower) public view returns (uint256) {
+        return (collateralTokenPrice * borrowerProfiles[borrower].collateralAmount * GRANULARITY) / (debtTokenPrice * borrowerProfiles[borrower].debtAmount);
     }
 
-    /// @notice Get how much a borrower has borrowed 
-    function getBorrowAmount(address borrower) public view {
-
-    }
-
-    /// @notice Get how much collateral a borrower has deposited
-    function getCollateralAmount(address borrower) public view {
-
-    }
-
-    // getTokenPrice
+    /// @notice yo mama
 
     // --------------------------------------------------------------
     // Super Agreement Callbacks
@@ -214,10 +312,17 @@ contract LendingCore is SuperAppBase {
         external override
         onlyExpected(_superToken, _agreementClass)
         onlyHost
-        returns (bytes memory newCtx)
+        returns (bytes memory)
     {
-     
-        return _createFlow(_agreementData, _ctx);
+        
+        // get stream initiator address from _agreementData
+        address streamStarter = cfaLib.host.decodeCtx(_ctx).msgSender;
+        console.log("Stream Starter:", streamStarter);
+
+        // only LendingCore should be starting the streams
+        require(streamStarter == address(this), "cannot start stream to LendingCore");
+
+        return _ctx;
     
     }
 
@@ -237,10 +342,17 @@ contract LendingCore is SuperAppBase {
         external override
         onlyExpected(_superToken, _agreementClass)
         onlyHost
-        returns (bytes memory newCtx)
+        returns (bytes memory)
     {
-        
-        return _updateFlow(_agreementData, _ctx);
+
+        // get stream initiator address from _agreementData
+        address streamStarter = cfaLib.host.decodeCtx(_ctx).msgSender;
+        console.log("Stream Starter:", streamStarter);
+
+        // only LendingCore should be starting the streams
+        require(streamStarter == address(this), "cannot update interest flow");
+
+        return _ctx;
         
     }
 
@@ -264,12 +376,19 @@ contract LendingCore is SuperAppBase {
         // According to the app basic law, we should never revert in a termination callback
         if (!_isValidToken(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
 
-        return _deleteFlow(_agreementData, _ctx);
+        // get borrower address from _agreementData
+        (address borrower,) = abi.decode(_agreementData, (address,address));
+        
+        // use liquidate to unwind loan
+        liquidate(borrower);
+        
+        // return context
+        return _ctx;
 
     }
 
     function _isValidToken(ISuperToken superToken) private view returns (bool) {
-        return ISuperToken(superToken) == borrowToken;
+        return ISuperToken(superToken) == debtToken;
     }
 
     function _isCFAv1(address agreementClass) private view returns (bool) {
@@ -287,19 +406,5 @@ contract LendingCore is SuperAppBase {
         require(_isCFAv1(agreementClass), "RedirectAll: only CFAv1 supported");
         _;
     }
-
-    function _createFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
-
-    }
-
-    function _updateFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
-        
-    }
-
-    function _deleteFlow(bytes calldata _agreementData, bytes calldata _ctx) internal returns(bytes memory newCtx) {
-        
-    }
-
-
 
 }
