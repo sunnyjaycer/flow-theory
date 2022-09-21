@@ -1,11 +1,7 @@
 import { ReactNode } from 'react';
-import {
-  Dialog as ReachDialog,
-  DialogOverlay,
-  DialogContent,
-} from '@reach/dialog';
+import { Dialog as ReachDialog } from '@reach/dialog';
 
-interface DialogProps {
+export interface DialogProps {
   isOpen: boolean;
   onDismiss: VoidFunction;
   'aria-label': string;

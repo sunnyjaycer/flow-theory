@@ -32,7 +32,7 @@ function MyApp({ Component, pageProps }: AppProps) {
       <RainbowKitProvider chains={chains}>
         <Header />
         <DashboardSelector />
-        <div className="flex flex-col md:flex-row gap-8 md:gap-0 mt-16 items-center">
+        <div className="flex flex-col md:flex-row gap-8 md:gap-0 mt-16">
           <Sidebar />
           <div className="flex-1">
             <Component {...pageProps} />
