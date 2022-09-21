@@ -13,8 +13,11 @@ import { GradientText } from '../components/gradient-text';
 import { PrimaryButton } from '../components/primary-button';
 import { PlusIcon } from '../svg/plus-icon';
 import Image from 'next/image';
+import { SecondaryButton } from '../components/secondary-button';
 
 type CurrentDialog = 'borrowDialog' | 'borrowConfirmationDialog' | undefined;
+
+const DECIMALS = 2;
 
 const Borrower = () => {
   const borrowedAmount = 0;
@@ -25,6 +28,30 @@ const Borrower = () => {
   const [collateralAmount, setCollateralAmount] = useState(0);
   const [borrowAmount, setBorrowAmount] = useState(0);
 
+  // TODO: These should come from subgraph
+  const currentCollateralAmount = 0;
+  const currentBorrowAmount = 0;
+  const interestRate = 0.01;
+
+  const totalBorrowAmount = currentBorrowAmount + borrowAmount;
+  const totalCollateralAmount = currentCollateralAmount + collateralAmount;
+
+  const getNewCollateralRatio = () => {
+    if (totalBorrowAmount === 0) {
+      // Guard against divide by 0
+      return;
+    }
+
+    return totalCollateralAmount / totalBorrowAmount;
+  };
+
+  const getNewInterest = () => {
+    return totalBorrowAmount * interestRate;
+  };
+
+  const newCollateralRatio = getNewCollateralRatio();
+  const newInterest = getNewInterest();
+
   return (
     <>
       {borrowedAmount === 0 ? (
@@ -32,19 +59,22 @@ const Borrower = () => {
       ) : (
         <BorrowsTable />
       )}
-      {/*
-        We probably want some kind of stack to handle these state changes
-      */}
       <BorrowDialog
         collateralAmount={collateralAmount}
         setCollateralAmount={setCollateralAmount}
         borrowAmount={borrowAmount}
         setBorrowAmount={setBorrowAmount}
+        newCollateralRatio={newCollateralRatio}
+        newInterest={newInterest}
         showDialog={currentDialog === 'borrowDialog'}
         closeDialog={() => setCurrentDialog(undefined)}
         onApprove={onApproveDeposit}
       />
       <BorrowConfirmationDialog
+        collateralAmount={collateralAmount}
+        borrowAmount={borrowAmount}
+        collateralRatio={newCollateralRatio ?? 0}
+        interest={newInterest}
         showDialog={currentDialog === 'borrowConfirmationDialog'}
         closeDialog={() => setCurrentDialog(undefined)}
         onBack={() => setCurrentDialog('borrowDialog')}
@@ -94,6 +124,8 @@ const BorrowDialog = ({
   setCollateralAmount,
   borrowAmount,
   setBorrowAmount,
+  newCollateralRatio,
+  newInterest,
   showDialog,
   closeDialog,
   onApprove,
@@ -102,6 +134,8 @@ const BorrowDialog = ({
   setCollateralAmount: Dispatch<SetStateAction<number>>;
   borrowAmount: number;
   setBorrowAmount: Dispatch<SetStateAction<number>>;
+  newCollateralRatio?: number;
+  newInterest: number;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -116,30 +150,6 @@ const BorrowDialog = ({
     }
     callback(value);
   };
-
-  // These should come from subgraph
-  const currentCollateralAmount = 0;
-  const currentBorrowAmount = 0;
-
-  const getNewCollateralRatio = () => {
-    const totalBorrowAmount = currentBorrowAmount + borrowAmount;
-    const totalCollateralAmount = currentCollateralAmount + collateralAmount;
-
-    if (currentBorrowAmount + borrowAmount === 0) {
-      // Guard against divide by 0
-      return;
-    }
-
-    return totalCollateralAmount / totalBorrowAmount;
-  };
-
-  const getNewInterest = () => {
-    const totalCollateralAmount = currentCollateralAmount + collateralAmount;
-    return;
-  };
-
-  const newCollateralRatio = getNewCollateralRatio();
-  const decimals = 2;
 
   return (
     <Dialog
@@ -166,15 +176,21 @@ const BorrowDialog = ({
             value={borrowAmount}
             onChange={(e) => onChangeNumberAmount(e, setBorrowAmount)}
           />
-          <p className="mb-4 font-bold">New Collateral Ratio</p>
-          <p className="mb-4">
-            {newCollateralRatio === undefined
-              ? '--:--'
-              : newCollateralRatio.toFixed(decimals)}{' '}
-          </p>
-          <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
-          <p className="mb-4 font-bold">New Interest</p>
+          <div className="mb-4">
+            <span className="font-bold">New Collateral Ratio: </span>
+            <span>
+              {newCollateralRatio === undefined
+                ? '--:--'
+                : newCollateralRatio.toFixed(DECIMALS)}{' '}
+            </span>
+          </div>
 
+          <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
+
+          <div className="mb-4">
+            <span className="font-bold">New Interest: </span>
+            <span>{newInterest.toFixed(DECIMALS)}/year</span>
+          </div>
           <div className="text-right mt-4">
             <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>
           </div>
@@ -185,29 +201,68 @@ const BorrowDialog = ({
 };
 
 const BorrowConfirmationDialog = ({
+  collateralAmount,
+  borrowAmount,
+  collateralRatio,
+  interest,
   showDialog,
   closeDialog,
   onBack,
   onConfirm,
 }: {
+  collateralAmount: number;
+  borrowAmount: number;
+  collateralRatio: number;
+  interest: number;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onBack: VoidFunction;
   onConfirm: VoidFunction;
 }) => {
+  const borrowAmountInUSDC = borrowAmount * 1300; // TODO: This should use real exchange rate
+
   return (
     <Dialog
       isOpen={showDialog}
       onDismiss={closeDialog}
       aria-label="Borrow confirmation Overlay"
     >
-      <div className="flex gap-4">
+      <div className="flex gap-4 mb-4">
         <div className="flex-1 text-left">
           <h2 className="text-2xl font-thin mb-4">Collateral</h2>
           <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-thin text-blue--3"></p>
-          <p className="font-thin text-blue--3">$2500</p>
+          <p className="font-bold text-brand-blue text-3xl">
+            {collateralAmount}
+          </p>
+          {/* Assuming the collateral amount is always USDC for now */}
+          <p className="font-thin text-blue--3">${collateralAmount}</p>
         </div>
+
+        <div className="flex-1 text-left">
+          <h2 className="text-2xl font-thin mb-4">Borrow</h2>
+          <Image src="/weth-logo.png" width={50} height={50} alt="USDC Logo" />
+          <p className="font-bold text-brand-blue text-3xl">{borrowAmount}</p>
+          <p className="font-thin text-blue--3">${borrowAmountInUSDC}</p>
+        </div>
+      </div>
+
+      <div className="text-left mb-4">
+        <p className="font-bold text-lg">Collateral Ratio</p>
+        <p className="font-thin text-3xl">
+          {collateralRatio.toFixed(DECIMALS)}
+        </p>
+        <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
+        <div>
+          <span className="font-bold">Interest: </span>
+          <span className="font-thin">
+            USDC {interest.toFixed(DECIMALS)}/year
+          </span>
+        </div>
+      </div>
+
+      <div className="flex justify-between">
+        <SecondaryButton onClick={onBack}>Back</SecondaryButton>
+        <PrimaryButton>Confirm</PrimaryButton>
       </div>
     </Dialog>
   );
