@@ -27,6 +27,11 @@ const Borrower = () => {
   };
   const [collateralAmount, setCollateralAmount] = useState(0);
   const [borrowAmount, setBorrowAmount] = useState(0);
+  const exitDialog = () => {
+    setCurrentDialog(undefined);
+    setCollateralAmount(0);
+    setBorrowAmount(0);
+  };
 
   // TODO: These should come from subgraph
   const currentCollateralAmount = 0;
@@ -67,7 +72,7 @@ const Borrower = () => {
         newCollateralRatio={newCollateralRatio}
         newInterest={newInterest}
         showDialog={currentDialog === 'borrowDialog'}
-        closeDialog={() => setCurrentDialog(undefined)}
+        closeDialog={exitDialog}
         onApprove={onApproveDeposit}
       />
       <BorrowConfirmationDialog
@@ -76,7 +81,7 @@ const Borrower = () => {
         collateralRatio={newCollateralRatio ?? 0}
         interest={newInterest}
         showDialog={currentDialog === 'borrowConfirmationDialog'}
-        closeDialog={() => setCurrentDialog(undefined)}
+        closeDialog={exitDialog}
         onBack={() => setCurrentDialog('borrowDialog')}
         onConfirm={() => {}}
       />
