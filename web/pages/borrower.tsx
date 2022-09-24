@@ -1,29 +1,11 @@
-import {
-  ChangeEvent,
-  Dispatch,
-  Reducer,
-  ReducerAction,
-  ReducerState,
-  SetStateAction,
-  useReducer,
-  useState,
-  ReactNode,
-} from 'react';
-import { Dialog } from '../components/dialog';
-import { GradientText } from '../components/gradient-text';
+import { useState, ReactNode } from 'react';
 import { PrimaryButton } from '../components/primary-button';
 import { PlusIcon } from '../svg/plus-icon';
 import Image from 'next/image';
 import { SecondaryButton } from '../components/secondary-button';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
-import {
-  usePrepareContractWrite,
-  useContractWrite,
-  useContractRead,
-  useAccount,
-} from 'wagmi';
+import { useContractRead, useAccount } from 'wagmi';
 import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
-import { PrimaryButtonIcon } from '../components/primary-button-icon';
 import { MinusIcon } from '../svg/minux-icon';
 import { RepayIcon } from '../svg/repay-icon';
 import { DollarIcon } from '../svg/dollar-icon';

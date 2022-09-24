@@ -4,6 +4,7 @@ import { wethToUSD } from '../helpers/conversion';
 import { PrimaryButton } from '../components/primary-button';
 import { SecondaryButton } from '../components/secondary-button';
 import { DECIMALS } from '../constants';
+import { DialogColumn } from '../components/dialog-column';
 
 export const WithdrawConfirmationDialog = ({
   withdrawAmount,
@@ -30,18 +31,32 @@ export const WithdrawConfirmationDialog = ({
     >
       <div className="flex gap-4 mb-4">
         <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Withdraw</h2>
-          <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-bold text-brand-blue text-3xl">{withdrawAmount}</p>
-          {/* Assuming the collateral amount is always USDC for now */}
-          <p className="font-thin text-blue--3">${withdrawAmount}</p>
+          <DialogColumn title="Withdraw">
+            <Image
+              src="/usdc-logo.png"
+              width={50}
+              height={50}
+              alt="USDC Logo"
+            />
+            <p className="font-bold text-brand-blue text-3xl">
+              {withdrawAmount}
+            </p>
+            {/* Assuming the collateral amount is always USDC for now */}
+            <p className="font-thin text-blue--3">${withdrawAmount}</p>
+          </DialogColumn>
         </div>
 
         <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Repay</h2>
-          <Image src="/weth-logo.png" width={50} height={50} alt="WETH Logo" />
-          <p className="font-bold text-brand-blue text-3xl">{repayAmount}</p>
-          <p className="font-thin text-blue--3">${repayAmountInUSD}</p>
+          <DialogColumn title="Repay">
+            <Image
+              src="/weth-logo.png"
+              width={50}
+              height={50}
+              alt="WETH Logo"
+            />
+            <p className="font-bold text-brand-blue text-3xl">{repayAmount}</p>
+            <p className="font-thin text-blue--3">${repayAmountInUSD}</p>
+          </DialogColumn>
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { wethToUSD } from '../helpers/conversion';
 import { DECIMALS } from '../constants';
 import { PrimaryButton } from '../components/primary-button';
 import { SecondaryButton } from '../components/secondary-button';
+import { DialogColumn } from '../components/dialog-column';
 
 export const RepayConfirmationDialog = ({
   repayAmount,
@@ -25,12 +26,13 @@ export const RepayConfirmationDialog = ({
       aria-label="Repay Confirmation Overlay"
     >
       <div className="mb-4">
-        <h2 className="text-2xl font-thin mb-4">Repay</h2>
-        <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
-        <p className="font-bold text-brand-blue text-3xl">{repayAmount}</p>
-        <p className="font-thin text-blue--3">
-          ${repayAmount.toFixed(DECIMALS)}
-        </p>
+        <DialogColumn title="Repay">
+          <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
+          <p className="font-bold text-brand-blue text-3xl">{repayAmount}</p>
+          <p className="font-thin text-blue--3">
+            ${repayAmount.toFixed(DECIMALS)}
+          </p>
+        </DialogColumn>
       </div>
 
       <div className="text-left mb-4">
