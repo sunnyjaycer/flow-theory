@@ -18,6 +18,7 @@ import { WithdrawConfirmationDialog } from '../modals/borrower/withdraw-confirma
 import { RepayDialog } from '../modals/borrower/repay-dialog';
 import { RepayConfirmationDialog } from '../modals/borrower/repay-confirmation-dialog';
 import { FancyDottedBox } from '../components/fancy-dotted-box';
+import { TableHeader } from '../components/table-header';
 
 type CurrentDialog =
   | 'borrowDialog'
@@ -194,10 +195,6 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
   );
 };
 
-const Header = ({ children }: { children: ReactNode }) => {
-  return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
-};
-
 const BorrowsTable = ({
   openDepositDialog,
   openWithdrawDialog,
@@ -215,7 +212,7 @@ const BorrowsTable = ({
   return (
     <div className="flex gap-4 mx-8">
       <div className="flex-1">
-        <Header>Collateral</Header>
+        <TableHeader>Collateral</TableHeader>
         <div className="bg-blue-3 p-4 flex items-center gap-8">
           <Image src="/weth-logo.png" width={50} height={50} alt="" />
           <p>{collateralAmount.toFixed(DECIMALS)}</p>
@@ -236,7 +233,7 @@ const BorrowsTable = ({
         </div>
       </div>
       <div className="flex-1">
-        <Header>Borrows</Header>
+        <TableHeader>Borrows</TableHeader>
         <div className="bg-blue-3 p-4 flex items-center gap-8">
           <Image src="/usdc-logo.png" width={50} height={50} alt="" />
           <p>{borrowedAmount.toFixed(DECIMALS)}</p>

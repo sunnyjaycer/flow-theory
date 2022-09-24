@@ -32,16 +32,20 @@ export const DepositDialog = ({
   const [isLoading, setIsLoading] = useState(false);
 
   const onClick = async () => {
-    setIsLoading(true);
-    const tx = await confirmDeposit?.();
-    if (tx === undefined) {
-      setIsLoading(false);
-      return;
-    }
+    try {
+      setIsLoading(true);
+      const tx = await confirmDeposit?.();
+      if (tx === undefined) {
+        setIsLoading(false);
+        return;
+      }
 
-    await tx.wait();
-    setIsLoading(false);
-    onApprove();
+      await tx.wait();
+      setIsLoading(false);
+      onApprove();
+    } catch {
+      setIsLoading(false);
+    }
   };
 
   return (

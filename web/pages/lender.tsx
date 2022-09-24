@@ -13,57 +13,56 @@ import {
 } from 'wagmi';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
 import { ethers } from 'ethers';
+import { TableHeader } from '../components/table-header';
+import Image from 'next/image';
+import { DECIMALS } from '../constants';
+import { formatEther } from 'ethers/lib/utils';
+import { SecondaryButton } from '../components/secondary-button';
+import { MinusIcon } from '../svg/minux-icon';
 
 type CurrentDialog = 'depositDialog' | 'depositConfirmationDialog' | undefined;
 
 const Lender = () => {
-  const currentLendAmount = 0;
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
   const [depositAmount, setDepositAmount] = useState(0);
+
+  const { address: owner } = useAccount();
+  const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
+    useLendingCoreAddress();
+  const {
+    data: lenderProfile,
+    isLoading: loadingAllowance,
+    refetch: refetchLenderProfiles,
+  } = useContractRead({
+    addressOrName: lendingCoreAddress,
+    contractInterface: lendingCoreAbi,
+    functionName: 'lenderProfiles',
+    args: [owner],
+  });
+
+  const currentLendAmount = Number(lenderProfile?.toString());
 
   const exitDialog = () => {
     setCurrentDialog(undefined);
     setDepositAmount(0);
+    refetchLenderProfiles();
   };
-
-  const usdcx = '0x8aE68021f6170E5a766bE613cEA0d75236ECCa9a'; // Goerly USDCX,
-  const { address: owner } = useAccount();
-  const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
-    useLendingCoreAddress();
-  const { data, isLoading: loadingAllowance } = useContractRead({
-    addressOrName: usdcx,
-    contractInterface: ERC20.abi,
-    functionName: 'allowance',
-    args: [owner, lendingCoreAddress],
-  });
-  const allowance = Number(data?.toString());
-
-  const { config: configIncreaseAllowance, isLoading: loadingApproval } =
-    usePrepareContractWrite({
-      addressOrName: usdcx,
-      contractInterface: ERC20.abi,
-      functionName: 'approve',
-      args: [lendingCoreAddress, ethers.constants.MaxUint256],
-    });
-  const { write: increaseAllowance } = useContractWrite(
-    configIncreaseAllowance
-  );
-
-  if (loadingAllowance || loadingApproval) {
-    return <div>Loading...</div>;
-  }
 
   return (
     <>
       {currentLendAmount === 0 ? (
         <NoLends
-          allowance={allowance}
-          increaseAllowance={increaseAllowance}
           openDialog={() => {
             setCurrentDialog('depositDialog');
           }}
         />
-      ) : null}
+      ) : (
+        <LendsTable
+          currentLendAmount={currentLendAmount}
+          openDepositDialog={() => setCurrentDialog('depositDialog')}
+          openWithdrawDialog={() => {}}
+        />
+      )}
       <DepositDialog
         depositAmount={depositAmount}
         setDepositAmount={setDepositAmount}
@@ -80,21 +79,68 @@ const Lender = () => {
   );
 };
 
-const NoLends = ({
-  allowance,
-  increaseAllowance,
-  openDialog,
-}: {
-  allowance: number;
-  increaseAllowance?: VoidFunction;
-  openDialog: VoidFunction;
-}) => {
+const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
+  const usdcx = '0x8aE68021f6170E5a766bE613cEA0d75236ECCa9a'; // Goerly USDCX,
+  const { address: owner } = useAccount();
+  const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
+  const {
+    data,
+    isLoading: loadingAllowance,
+    refetch,
+  } = useContractRead({
+    addressOrName: usdcx,
+    contractInterface: ERC20.abi,
+    functionName: 'allowance',
+    args: [owner, lendingCoreAddress],
+  });
+  const allowance = Number(data?.toString());
+
+  const { config: configIncreaseAllowance, isLoading: loadingApproval } =
+    usePrepareContractWrite({
+      addressOrName: usdcx,
+      contractInterface: ERC20.abi,
+      functionName: 'approve',
+      args: [lendingCoreAddress, ethers.constants.MaxUint256],
+    });
+  const { writeAsync: increaseAllowance } = useContractWrite(
+    configIncreaseAllowance
+  );
+
+  const [loadingIncreaseAllowance, setLoadingIncreaseAllowance] =
+    useState(false);
+
+  const onClickIncreaseAllowance = async () => {
+    try {
+      setLoadingIncreaseAllowance(true);
+
+      const tx = await increaseAllowance?.();
+      if (tx === undefined) {
+        setLoadingIncreaseAllowance(false);
+        return;
+      }
+
+      await tx.wait();
+      await refetch();
+      setLoadingIncreaseAllowance(false);
+    } catch (error) {
+      setLoadingIncreaseAllowance(false);
+    }
+  };
+
+  if (loadingAllowance || loadingAllowance || increaseAllowance === undefined) {
+    return null;
+  }
+
   return (
     <FancyDottedBox>
       <div className="h-full flex gap-4 items-center">
         <p className="text-gray-400">Start depositing</p>
         {allowance === 0 ? (
-          <PrimaryButton onClick={increaseAllowance}>
+          <PrimaryButton
+            onClick={onClickIncreaseAllowance}
+            isLoading={loadingIncreaseAllowance}
+            disabled={loadingIncreaseAllowance}
+          >
             <div className="flex items-center gap-2">
               Allow spending of USDCx
             </div>
@@ -111,6 +157,42 @@ const NoLends = ({
         )}
       </div>
     </FancyDottedBox>
+  );
+};
+
+const LendsTable = ({
+  currentLendAmount,
+  openDepositDialog,
+  openWithdrawDialog,
+}: {
+  currentLendAmount: number;
+  openDepositDialog: VoidFunction;
+  openWithdrawDialog: VoidFunction;
+}) => {
+  const parsedLendAmount = formatEther(currentLendAmount.toString());
+
+  return (
+    <div className="mx-8">
+      <TableHeader>Deposits</TableHeader>
+      <div className="bg-blue-3 p-4 flex items-center gap-8">
+        <Image src="/usdc-logo.png" width={50} height={50} alt="" />
+        <p className="font-bold text-xl">{parsedLendAmount}</p>
+        <div className="flex h-fit gap-8">
+          <PrimaryButton onClick={openDepositDialog}>
+            <div className="flex items-center gap-2">
+              <PlusIcon />
+              Deposit
+            </div>
+          </PrimaryButton>
+          <SecondaryButton onClick={openWithdrawDialog}>
+            <div className="flex items-center gap-2">
+              <MinusIcon />
+              Withdraw
+            </div>
+          </SecondaryButton>
+        </div>
+      </div>
+    </div>
   );
 };
 
