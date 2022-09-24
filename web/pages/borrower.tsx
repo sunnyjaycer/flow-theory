@@ -115,6 +115,7 @@ const Borrower = () => {
           openDepositDialog={() => setCurrentDialog('depositDialog')}
           openWithdrawDialog={() => setCurrentDialog('withdrawDialog')}
           openRepayDialog={() => setCurrentDialog('repayDialog')}
+          openBorrowDialog={() => setCurrentDialog('borrowDialog')}
         />
       )}
       <BorrowDialog
@@ -218,10 +219,12 @@ const BorrowsTable = ({
   openDepositDialog,
   openWithdrawDialog,
   openRepayDialog,
+  openBorrowDialog,
 }: {
   openDepositDialog: VoidFunction;
   openWithdrawDialog: VoidFunction;
   openRepayDialog: VoidFunction;
+  openBorrowDialog: VoidFunction;
 }) => {
   const Header = ({ children }: { children: ReactNode }) => {
     return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
@@ -265,7 +268,7 @@ const BorrowsTable = ({
                 Repay
               </div>
             </PrimaryButton>
-            <SecondaryButton>
+            <SecondaryButton onClick={openBorrowDialog}>
               <div className="flex items-center gap-2">
                 <DollarIcon />
                 Borrow
