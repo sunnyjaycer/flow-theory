@@ -40,9 +40,11 @@ export const Sidebar = () => {
   return (
     <div>
       <div className="font-bold text-blue--3">
-        <p className="mb-4">
-          Collateral Ratio | {collateralRatio.toFixed(decimals)}
-        </p>
+        {currentDashboard === 'borrower' ? (
+          <p className="mb-4">
+            Collateral Ratio | {collateralRatio.toFixed(decimals)}
+          </p>
+        ) : null}
         <p className="mb-4">Fixed APR | {fixedApr.toFixed(decimals)}</p>
         <h2 className="text-4xl font-thin mb-4 text-white">{interestText}</h2>
         <Odometer start={interest} rate={0.01} />

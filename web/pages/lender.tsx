@@ -19,20 +19,28 @@ import { DECIMALS } from '../constants';
 import { formatEther } from 'ethers/lib/utils';
 import { SecondaryButton } from '../components/secondary-button';
 import { MinusIcon } from '../svg/minux-icon';
+import { WithdrawDialog } from '../modals/lender/withdraw-dialog';
+import { Loading } from '../components/loading';
 
-type CurrentDialog = 'depositDialog' | 'depositConfirmationDialog' | undefined;
+type CurrentDialog =
+  | 'depositDialog'
+  | 'depositConfirmationDialog'
+  | 'withdrawDialog'
+  | 'withdrawConfirmationDialog'
+  | undefined;
 
 const Lender = () => {
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
   const [depositAmount, setDepositAmount] = useState(0);
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
 
   const { address: owner } = useAccount();
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
   const {
     data: lenderProfile,
-    isLoading: loadingAllowance,
     refetch: refetchLenderProfiles,
+    isFetching: fetchingAllowance,
   } = useContractRead({
     addressOrName: lendingCoreAddress,
     contractInterface: lendingCoreAbi,
@@ -40,13 +48,18 @@ const Lender = () => {
     args: [owner],
   });
 
-  const currentLendAmount = Number(lenderProfile?.toString());
-
   const exitDialog = () => {
     setCurrentDialog(undefined);
     setDepositAmount(0);
+    setWithdrawAmount(0);
     refetchLenderProfiles();
   };
+
+  if (fetchingAllowance) {
+    return <Loading />;
+  }
+
+  const currentLendAmount = Number(lenderProfile?.toString());
 
   return (
     <>
@@ -60,7 +73,7 @@ const Lender = () => {
         <LendsTable
           currentLendAmount={currentLendAmount}
           openDepositDialog={() => setCurrentDialog('depositDialog')}
-          openWithdrawDialog={() => {}}
+          openWithdrawDialog={() => setCurrentDialog('withdrawDialog')}
         />
       )}
       <DepositDialog
@@ -74,6 +87,14 @@ const Lender = () => {
         depositAmount={depositAmount}
         showDialog={currentDialog === 'depositConfirmationDialog'}
         closeDialog={exitDialog}
+      />
+      <WithdrawDialog
+        withdrawAmount={withdrawAmount}
+        setWithdrawAmount={setWithdrawAmount}
+        maxWithdrawAmount={currentLendAmount}
+        showDialog={currentDialog === 'withdrawDialog'}
+        closeDialog={exitDialog}
+        onApprove={() => setCurrentDialog('withdrawConfirmationDialog')}
       />
     </>
   );
