@@ -1,11 +1,11 @@
 import { Dispatch, SetStateAction } from 'react';
-import { Dialog } from '../components/dialog';
-import { DialogColumn } from '../components/dialog-column';
-import { DialogInput } from '../components/dialog-input';
-import { GradientText } from '../components/gradient-text';
-import { PrimaryButton } from '../components/primary-button';
-import { DECIMALS } from '../constants';
-import { onChangeNumberAmount } from '../helpers/number-helpers';
+import { Dialog } from '../../components/dialog';
+import { DialogColumn } from '../../components/dialog-column';
+import { DialogInput } from '../../components/dialog-input';
+import { GradientText } from '../../components/gradient-text';
+import { PrimaryButton } from '../../components/primary-button';
+import { DECIMALS } from '../../constants';
+import { onChangeNumberAmount } from '../../helpers/number-helpers';
 
 export const RepayDialog = ({
   repayAmount,

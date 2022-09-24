@@ -1,10 +1,9 @@
-import { Dialog } from '../components/dialog';
+import { Dialog } from '../../components/dialog';
 import { Dispatch, SetStateAction } from 'react';
-import { onChangeNumberAmount } from '../helpers/number-helpers';
-import { DECIMALS } from '../constants';
-import { PrimaryButton } from '../components/primary-button';
-import { DialogColumn } from '../components/dialog-column';
-import { DialogInput } from '../components/dialog-input';
+import { DECIMALS } from '../../constants';
+import { PrimaryButton } from '../../components/primary-button';
+import { DialogColumn } from '../../components/dialog-column';
+import { DialogInput } from '../../components/dialog-input';
 
 export const DepositDialog = ({
   depositAmount,

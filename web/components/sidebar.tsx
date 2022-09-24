@@ -19,7 +19,7 @@ export const Sidebar = () => {
   const rate = 0;
 
   const interestText = {
-    lender: 'Interest Earned',
+    lender: 'Interest Gained',
     borrower: 'Interest Paid',
   }[currentDashboard];
 
@@ -50,7 +50,10 @@ export const Sidebar = () => {
           <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
         </div>
 
-        <p>Rate: {getFormattedRate()}</p>
+        {currentDashboard === 'borrower' ? (
+          <p>Rate: {getFormattedRate()}</p>
+        ) : null}
+        {currentDashboard === 'lender' ? <p>Payout: (Once a day)</p> : null}
       </div>
     </div>
   );

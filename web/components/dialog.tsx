@@ -14,7 +14,7 @@ export const Dialog = ({
   return (
     <ReachDialog
       {...dialogProps}
-      className="bg-blue-3 text-white rounded-lg p-8 px-8 text-center w-fit"
+      className="bg-blue-3 text-white rounded-lg p-8 px-8 text-center w-fit min-w-[400px]"
     >
       {children}
     </ReachDialog>

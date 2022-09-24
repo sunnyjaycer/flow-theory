@@ -1,10 +1,10 @@
-import { Dialog } from '../components/dialog';
+import { Dialog } from '../../components/dialog';
 import Image from 'next/image';
-import { wethToUSD } from '../helpers/conversion';
-import { DECIMALS } from '../constants';
-import { PrimaryButton } from '../components/primary-button';
-import { SecondaryButton } from '../components/secondary-button';
-import { DialogColumn } from '../components/dialog-column';
+import { wethToUSD } from '../../helpers/conversion';
+import { DECIMALS } from '../../constants';
+import { PrimaryButton } from '../../components/primary-button';
+import { SecondaryButton } from '../../components/secondary-button';
+import { DialogColumn } from '../../components/dialog-column';
 
 export const RepayConfirmationDialog = ({
   repayAmount,

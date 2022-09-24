@@ -9,14 +9,15 @@ import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.j
 import { MinusIcon } from '../svg/minux-icon';
 import { RepayIcon } from '../svg/repay-icon';
 import { DollarIcon } from '../svg/dollar-icon';
-import { BorrowDialog } from '../modals/borrow-dialog';
-import { BorrowConfirmationDialog } from '../modals/borrow-confirmation-dialog';
-import { DepositDialog } from '../modals/deposit-dialog';
-import { DepositConfirmationDialog } from '../modals/deposit-confirmation-dialog';
-import { WithdrawDialog } from '../modals/withdraw-dialog';
-import { WithdrawConfirmationDialog } from '../modals/withdraw-confirmation-dialog';
-import { RepayDialog } from '../modals/repay-dialog';
-import { RepayConfirmationDialog } from '../modals/repay-confirmation-dialog';
+import { BorrowDialog } from '../modals/borrower/borrow-dialog';
+import { BorrowConfirmationDialog } from '../modals/borrower/borrow-confirmation-dialog';
+import { DepositDialog } from '../modals/borrower/deposit-dialog';
+import { DepositConfirmationDialog } from '../modals/borrower/deposit-confirmation-dialog';
+import { WithdrawDialog } from '../modals/borrower/withdraw-dialog';
+import { WithdrawConfirmationDialog } from '../modals/borrower/withdraw-confirmation-dialog';
+import { RepayDialog } from '../modals/borrower/repay-dialog';
+import { RepayConfirmationDialog } from '../modals/borrower/repay-confirmation-dialog';
+import { FancyDottedBox } from '../components/fancy-dotted-box';
 
 type CurrentDialog =
   | 'borrowDialog'
@@ -61,7 +62,7 @@ const Borrower = () => {
   });
   const currentCollateralAmount = data?.collateralAmount.toNumber();
   // const currentBorrowAmount = data?.debtAmount.toNumber();
-  const currentBorrowAmount = 10;
+  const currentBorrowAmount = 0;
 
   // TODO: These should come from subgraph
   const interestRate = 0.01;
@@ -177,23 +178,19 @@ const Borrower = () => {
 
 const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
   return (
-    <>
-      <div className="h-full mx-8 md:mx-16 rounded-2xl bg-gradient-to-b from-brand-blue to-brand-purple">
-        <div className="h-full  border-background border-2 rounded-2xl  border-dashed">
-          <div className="h-full bg-background flex gap-4 p-16 py-32 w-full rounded-2xl items-center">
-            <p className="text-gray-400">No Borrows</p>
-            <PrimaryButton onClick={openDialog}>
-              <div className="flex items-center gap-2">
-                <div className="mb-1">
-                  <PlusIcon />
-                </div>
-                Deposit Collateral
-              </div>
-            </PrimaryButton>
+    <FancyDottedBox>
+      <div className="h-full flex gap-4 items-center">
+        <p className="text-gray-400">No Borrows</p>
+        <PrimaryButton onClick={openDialog}>
+          <div className="flex items-center gap-2">
+            <div className="mb-1">
+              <PlusIcon />
+            </div>
+            Deposit Collateral
           </div>
-        </div>
+        </PrimaryButton>
       </div>
-    </>
+    </FancyDottedBox>
   );
 };
 

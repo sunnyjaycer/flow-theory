@@ -1,14 +1,15 @@
 import { useNetwork, chainId } from 'wagmi';
+import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
 
-export const useLendingCoreAddress = (): string => {
+export const useLendingCoreAddress = () => {
   const nullAddress = '0x0';
   const { chain } = useNetwork();
   if (chain?.id === undefined) {
-    return nullAddress;
+    return { contractAddress: nullAddress, abi: LendingCore.abi };
   }
 
   const contractAddress = {
-    [chainId.goerli]: '0x5c2A0458DC8CA0670C5FfD76ccDda9C2afFc2266',
+    [chainId.goerli]: '0x5990980b36BaE3EF45C6D302917916150D3b5B16',
     [chainId.rinkeby]: '0x0',
     [chainId.mainnet]: '0x0',
     [chainId.optimismGoerli]: '0x0',
@@ -16,8 +17,11 @@ export const useLendingCoreAddress = (): string => {
   }[chain.id];
 
   if (contractAddress === undefined) {
-    return nullAddress;
+    return { contractAddress: nullAddress, abi: LendingCore.abi };
   }
 
-  return contractAddress;
+  return {
+    contractAddress,
+    abi: LendingCore.abi,
+  };
 };

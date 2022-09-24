@@ -1,14 +1,14 @@
 import { usePrepareContractWrite, useContractWrite } from 'wagmi';
-import { GradientText } from '../components/gradient-text';
-import { PrimaryButton } from '../components/primary-button';
-import { SecondaryButton } from '../components/secondary-button';
-import { DECIMALS } from '../constants';
-import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
-import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
-import { Dialog } from '../components/dialog';
+import { GradientText } from '../../components/gradient-text';
+import { PrimaryButton } from '../../components/primary-button';
+import { SecondaryButton } from '../../components/secondary-button';
+import { DECIMALS } from '../../constants';
+import { useLendingCoreAddress } from '../../hooks/use-lending-core-address';
+import LendingCore from '../../../artifacts/contracts/LendingCore.sol/LendingCore.json';
+import { Dialog } from '../../components/dialog';
 import Image from 'next/image';
-import { wethToUSD } from '../helpers/conversion';
-import { DialogColumn } from '../components/dialog-column';
+import { wethToUSD } from '../../helpers/conversion';
+import { DialogColumn } from '../../components/dialog-column';
 
 export const BorrowConfirmationDialog = ({
   collateralAmount,
