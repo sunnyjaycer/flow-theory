@@ -32,7 +32,6 @@ type CurrentDialog =
 const DECIMALS = 2;
 
 const Borrower = () => {
-  const borrowedAmount = 1;
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
   const onApproveDeposit = () => {
     setCurrentDialog('borrowConfirmationDialog');
@@ -90,7 +89,8 @@ const Borrower = () => {
 
   return (
     <>
-      {currentBorrowAmount === 0 || isLoading ? (
+      {/* {currentBorrowAmount === 0 || isLoading ? ( */}
+      {currentBorrowAmount === 0 ? (
         <NoBorrows openDialog={() => setCurrentDialog('borrowDialog')} />
       ) : (
         <BorrowsTable
@@ -197,6 +197,10 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
   );
 };
 
+const Header = ({ children }: { children: ReactNode }) => {
+  return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
+};
+
 const BorrowsTable = ({
   openDepositDialog,
   openWithdrawDialog,
@@ -208,10 +212,6 @@ const BorrowsTable = ({
   openRepayDialog: VoidFunction;
   openBorrowDialog: VoidFunction;
 }) => {
-  const Header = ({ children }: { children: ReactNode }) => {
-    return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
-  };
-
   const collateralAmount = 10;
   const borrowedAmount = 10;
 

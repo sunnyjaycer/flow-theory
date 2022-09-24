@@ -4,6 +4,7 @@ import { onChangeNumberAmount } from '../helpers/number-helpers';
 import { DECIMALS } from '../constants';
 import { PrimaryButton } from '../components/primary-button';
 import { DialogColumn } from '../components/dialog-column';
+import { DialogInput } from '../components/dialog-input';
 
 export const DepositDialog = ({
   depositAmount,
@@ -29,11 +30,12 @@ export const DepositDialog = ({
       <div className="text-left">
         <div className="flex-1 text-left">
           <DialogColumn title="Deposit Collateral">
-            <input
-              placeholder="0"
-              className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
+            <DialogInput
               value={depositAmount}
-              onChange={(e) => onChangeNumberAmount(e, setDepositAmount)}
+              label="Amount"
+              onChange={setDepositAmount}
+              icon={'/usdc-logo.png'}
+              className="mb-4"
             />
           </DialogColumn>
         </div>

@@ -1,6 +1,8 @@
+import Image from 'next/image';
 import { Dispatch, SetStateAction, ChangeEvent } from 'react';
 import { Dialog } from '../components/dialog';
 import { DialogColumn } from '../components/dialog-column';
+import { DialogInput } from '../components/dialog-input';
 import { GradientText } from '../components/gradient-text';
 import { PrimaryButton } from '../components/primary-button';
 import { DECIMALS } from '../constants';
@@ -36,22 +38,25 @@ export const BorrowDialog = ({
       <div className="flex gap-4">
         <div className="flex-1 text-left">
           <DialogColumn title="Add Collateral">
-            <input
-              placeholder="0"
-              className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
+            <DialogInput
               value={collateralAmount}
-              onChange={(e) => onChangeNumberAmount(e, setCollateralAmount)}
+              label="Amount"
+              onChange={setCollateralAmount}
+              icon={'/weth-logo.png'}
+              className="mb-4"
             />
-            <p className="font-thin text-blue--3">Only deposit USDC</p>
+
+            <p className="font-thin text-blue--3">Only deposit WETH</p>
           </DialogColumn>
         </div>
         <div className="flex-1 text-left">
           <DialogColumn title="Borrow">
-            <input
-              placeholder="0"
-              className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
+            <DialogInput
               value={borrowAmount}
-              onChange={(e) => onChangeNumberAmount(e, setBorrowAmount)}
+              label="Amount"
+              onChange={setBorrowAmount}
+              icon={'/usdc-logo.png'}
+              className="mb-4"
             />
           </DialogColumn>
           <div className="mb-4">

@@ -1,6 +1,7 @@
 import { Dispatch, SetStateAction } from 'react';
 import { Dialog } from '../components/dialog';
 import { DialogColumn } from '../components/dialog-column';
+import { DialogInput } from '../components/dialog-input';
 import { GradientText } from '../components/gradient-text';
 import { PrimaryButton } from '../components/primary-button';
 import { DECIMALS } from '../constants';
@@ -39,22 +40,30 @@ export const WithdrawDialog = ({
       <div className="flex gap-4">
         <div className="flex-1 text-left">
           <DialogColumn title="Withdraw Collateral">
-            <input
-              placeholder="0"
-              className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
+            <DialogInput
               value={withdrawAmount}
-              onChange={(e) => onChangeNumberAmount(e, setWithdrawAmount)}
+              label="Amount"
+              onChange={setWithdrawAmount}
+              icon={'/weth-logo.png'}
+              className="mb-4"
+              buttonText="Use Max"
+              // TODO: Max functionality
+              onButtonPress={() => {}}
             />
             <p className="font-thin text-blue--3">Only deposit USDC</p>
           </DialogColumn>
         </div>
         <div className="flex-1 text-left">
           <DialogColumn title="Repay Loan">
-            <input
-              placeholder="0"
-              className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
+            <DialogInput
               value={repayAmount}
-              onChange={(e) => onChangeNumberAmount(e, setRepayAmount)}
+              label="Amount"
+              onChange={setRepayAmount}
+              icon={'/usdc-logo.png'}
+              className="mb-4"
+              buttonText="Use Max"
+              // TODO: Max functionality
+              onButtonPress={() => {}}
             />
             <div className="mb-4">
               <span className="font-bold">New Collateral Ratio: </span>
