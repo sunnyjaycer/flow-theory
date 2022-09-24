@@ -21,6 +21,7 @@ import { SecondaryButton } from '../components/secondary-button';
 import { MinusIcon } from '../svg/minux-icon';
 import { WithdrawDialog } from '../modals/lender/withdraw-dialog';
 import { Loading } from '../components/loading';
+import { WithdrawConfirmationDialog } from '../modals/lender/withdraw-confirmation-dialog';
 
 type CurrentDialog =
   | 'depositDialog'
@@ -30,7 +31,9 @@ type CurrentDialog =
   | undefined;
 
 const Lender = () => {
-  const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
+  const [currentDialog, setCurrentDialog] = useState<CurrentDialog>(
+    'withdrawConfirmationDialog'
+  );
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
 
@@ -54,6 +57,9 @@ const Lender = () => {
     setWithdrawAmount(0);
     refetchLenderProfiles();
   };
+
+  // TODO: This needs to come from contract
+  const interestGained = 10;
 
   if (fetchingAllowance) {
     return <Loading />;
@@ -95,6 +101,12 @@ const Lender = () => {
         showDialog={currentDialog === 'withdrawDialog'}
         closeDialog={exitDialog}
         onApprove={() => setCurrentDialog('withdrawConfirmationDialog')}
+      />
+      <WithdrawConfirmationDialog
+        withdrawAmount={withdrawAmount}
+        interestGained={interestGained}
+        showDialog={currentDialog === 'withdrawConfirmationDialog'}
+        closeDialog={exitDialog}
       />
     </>
   );
