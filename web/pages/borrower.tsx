@@ -7,6 +7,7 @@ import {
   SetStateAction,
   useReducer,
   useState,
+  ReactNode,
 } from 'react';
 import { Dialog } from '../components/dialog';
 import { GradientText } from '../components/gradient-text';
@@ -14,35 +15,72 @@ import { PrimaryButton } from '../components/primary-button';
 import { PlusIcon } from '../svg/plus-icon';
 import Image from 'next/image';
 import { SecondaryButton } from '../components/secondary-button';
+import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
+import {
+  usePrepareContractWrite,
+  useContractWrite,
+  useContractRead,
+  useAccount,
+} from 'wagmi';
+import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
+import { PrimaryButtonIcon } from '../components/primary-button-icon';
+import { MinusIcon } from '../svg/minux-icon';
+import { RepayIcon } from '../svg/repay-icon';
+import { DollarIcon } from '../svg/dollar-icon';
+import { BorrowDialog } from '../modals/borrow-dialog';
+import { BorrowConfirmationDialog } from '../modals/borrow-confirmation-dialog';
+import { DepositDialog } from '../modals/deposit-dialog';
+import { DepositConfirmationDialog } from '../modals/deposit-confirmation-dialog';
 
-type CurrentDialog = 'borrowDialog' | 'borrowConfirmationDialog' | undefined;
+type CurrentDialog =
+  | 'borrowDialog'
+  | 'borrowConfirmationDialog'
+  | 'depositDialog'
+  | 'depositConfirmationDialog'
+  | undefined;
 
 const DECIMALS = 2;
 
 const Borrower = () => {
-  const borrowedAmount = 0;
+  const borrowedAmount = 1;
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
   const onApproveDeposit = () => {
     setCurrentDialog('borrowConfirmationDialog');
   };
   const [collateralAmount, setCollateralAmount] = useState(0);
   const [borrowAmount, setBorrowAmount] = useState(0);
+  const [depositAmount, setDepositAmount] = useState(0);
+
   const exitDialog = () => {
     setCurrentDialog(undefined);
     setCollateralAmount(0);
     setBorrowAmount(0);
+    setDepositAmount(0);
   };
 
+  const { address } = useAccount();
+  console.log('address', address);
+  const lendingCoreAddress = useLendingCoreAddress();
+  const { data, isError, isLoading } = useContractRead({
+    addressOrName: lendingCoreAddress,
+    contractInterface: LendingCore.abi,
+    functionName: 'borrowerProfiles(address)',
+    args: [address],
+  });
+  const currentCollateralAmount = data?.collateralAmount.toNumber();
+  // const currentBorrowAmount = data?.debtAmount.toNumber();
+  const currentBorrowAmount = 10;
+
   // TODO: These should come from subgraph
-  const currentCollateralAmount = 0;
-  const currentBorrowAmount = 0;
+  // const currentCollateralAmount = 0;
+  // const currentBorrowAmount = 0;
   const interestRate = 0.01;
 
-  const totalBorrowAmount = currentBorrowAmount + borrowAmount;
+  const totalBorrowAmount = currentBorrowAmount + borrowAmount - depositAmount;
   const totalCollateralAmount = currentCollateralAmount + collateralAmount;
 
   const getNewCollateralRatio = () => {
-    if (totalBorrowAmount === 0) {
+    if (totalBorrowAmount <= 0) {
       // Guard against divide by 0
       return;
     }
@@ -59,10 +97,12 @@ const Borrower = () => {
 
   return (
     <>
-      {borrowedAmount === 0 ? (
+      {currentBorrowAmount === 0 || isLoading ? (
         <NoBorrows openDialog={() => setCurrentDialog('borrowDialog')} />
       ) : (
-        <BorrowsTable />
+        <BorrowsTable
+          openDepositDialog={() => setCurrentDialog('depositDialog')}
+        />
       )}
       <BorrowDialog
         collateralAmount={collateralAmount}
@@ -83,7 +123,22 @@ const Borrower = () => {
         showDialog={currentDialog === 'borrowConfirmationDialog'}
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('borrowDialog')}
-        onConfirm={() => {}}
+      />
+      <DepositDialog
+        depositAmount={depositAmount}
+        setDepositAmount={setDepositAmount}
+        newCollateralRatio={newCollateralRatio}
+        showDialog={currentDialog === 'depositDialog'}
+        closeDialog={exitDialog}
+        onApprove={() => setCurrentDialog('depositConfirmationDialog')}
+      />
+      <DepositConfirmationDialog
+        collateralRatio={newCollateralRatio ?? 0}
+        interest={newInterest}
+        depositAmount={depositAmount}
+        showDialog={currentDialog === 'depositConfirmationDialog'}
+        closeDialog={exitDialog}
+        onBack={() => setCurrentDialog('depositDialog')}
       />
     </>
   );
@@ -111,165 +166,63 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
   );
 };
 
-const BorrowsTable = () => {
-  return (
-    <div className="flex gap-4">
-      <div className="flex-1">
-        <h1>Collateral</h1>
-      </div>
-      <div className="flex-1">
-        <h1>Borrows</h1>
-      </div>
-    </div>
-  );
-};
-
-const BorrowDialog = ({
-  collateralAmount,
-  setCollateralAmount,
-  borrowAmount,
-  setBorrowAmount,
-  newCollateralRatio,
-  newInterest,
-  showDialog,
-  closeDialog,
-  onApprove,
+const BorrowsTable = ({
+  openDepositDialog,
 }: {
-  collateralAmount: number;
-  setCollateralAmount: Dispatch<SetStateAction<number>>;
-  borrowAmount: number;
-  setBorrowAmount: Dispatch<SetStateAction<number>>;
-  newCollateralRatio?: number;
-  newInterest: number;
-  showDialog: boolean;
-  closeDialog: VoidFunction;
-  onApprove: VoidFunction;
+  openDepositDialog: VoidFunction;
 }) => {
-  const onChangeNumberAmount = (
-    e: ChangeEvent<HTMLInputElement>,
-    callback: Dispatch<SetStateAction<number>>
-  ) => {
-    const value = Number(e.target.value);
-    if (isNaN(value)) {
-      return;
-    }
-    callback(value);
+  const Header = ({ children }: { children: ReactNode }) => {
+    return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
   };
 
-  return (
-    <Dialog
-      isOpen={showDialog}
-      onDismiss={closeDialog}
-      aria-label="Borrow Overlay"
-    >
-      <div className="flex gap-4">
-        <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Add Collateral</h2>
-          <input
-            placeholder="0"
-            className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
-            value={collateralAmount}
-            onChange={(e) => onChangeNumberAmount(e, setCollateralAmount)}
-          />
-          <p className="font-thin text-blue--3">Only deposit USDC</p>
-        </div>
-        <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Borrow</h2>
-          <input
-            placeholder="0"
-            className="bg-background text-xl font-thin w-full mb-4 h-12 px-4"
-            value={borrowAmount}
-            onChange={(e) => onChangeNumberAmount(e, setBorrowAmount)}
-          />
-          <div className="mb-4">
-            <span className="font-bold">New Collateral Ratio: </span>
-            <span>
-              {newCollateralRatio === undefined
-                ? '--:--'
-                : newCollateralRatio.toFixed(DECIMALS)}{' '}
-            </span>
-          </div>
-
-          <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
-
-          <div className="mb-4">
-            <span className="font-bold">New Interest: </span>
-            <span>{newInterest.toFixed(DECIMALS)}/year</span>
-          </div>
-          <div className="text-right mt-4">
-            <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>
-          </div>
-        </div>
-      </div>
-    </Dialog>
-  );
-};
-
-const BorrowConfirmationDialog = ({
-  collateralAmount,
-  borrowAmount,
-  collateralRatio,
-  interest,
-  showDialog,
-  closeDialog,
-  onBack,
-  onConfirm,
-}: {
-  collateralAmount: number;
-  borrowAmount: number;
-  collateralRatio: number;
-  interest: number;
-  showDialog: boolean;
-  closeDialog: VoidFunction;
-  onBack: VoidFunction;
-  onConfirm: VoidFunction;
-}) => {
-  const borrowAmountInUSDC = borrowAmount * 1300; // TODO: This should use real exchange rate
+  const collateralAmount = 10;
+  const borrowedAmount = 10;
 
   return (
-    <Dialog
-      isOpen={showDialog}
-      onDismiss={closeDialog}
-      aria-label="Borrow confirmation Overlay"
-    >
-      <div className="flex gap-4 mb-4">
-        <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Collateral</h2>
-          <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-bold text-brand-blue text-3xl">
-            {collateralAmount}
-          </p>
-          {/* Assuming the collateral amount is always USDC for now */}
-          <p className="font-thin text-blue--3">${collateralAmount}</p>
-        </div>
-
-        <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Borrow</h2>
-          <Image src="/weth-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-bold text-brand-blue text-3xl">{borrowAmount}</p>
-          <p className="font-thin text-blue--3">${borrowAmountInUSDC}</p>
-        </div>
-      </div>
-
-      <div className="text-left mb-4">
-        <p className="font-bold text-lg">Collateral Ratio</p>
-        <p className="font-thin text-3xl">
-          {collateralRatio.toFixed(DECIMALS)}
-        </p>
-        <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
-        <div>
-          <span className="font-bold">Interest: </span>
-          <span className="font-thin">
-            USDC {interest.toFixed(DECIMALS)}/year
-          </span>
+    <div className="flex gap-4 mx-8">
+      <div className="flex-1">
+        <Header>Collateral</Header>
+        <div className="bg-blue-3 p-4 flex items-center gap-8">
+          <Image src="/weth-logo.png" width={50} height={50} alt="" />
+          <p>{collateralAmount.toFixed(DECIMALS)}</p>
+          <div className="flex h-fit gap-8">
+            <PrimaryButton onClick={openDepositDialog}>
+              <div className="flex items-center gap-2">
+                <PlusIcon />
+                Deposit
+              </div>
+            </PrimaryButton>
+            <SecondaryButton>
+              <div className="flex items-center gap-2">
+                <MinusIcon />
+                Withdraw
+              </div>
+            </SecondaryButton>
+          </div>
         </div>
       </div>
-
-      <div className="flex justify-between">
-        <SecondaryButton onClick={onBack}>Back</SecondaryButton>
-        <PrimaryButton>Confirm</PrimaryButton>
+      <div className="flex-1">
+        <Header>Borrows</Header>
+        <div className="bg-blue-3 p-4 flex items-center gap-8">
+          <Image src="/usdc-logo.png" width={50} height={50} alt="" />
+          <p>{borrowedAmount.toFixed(DECIMALS)}</p>
+          <div className="flex h-fit gap-8">
+            <PrimaryButton>
+              <div className="flex items-center gap-2">
+                <RepayIcon />
+                Repay
+              </div>
+            </PrimaryButton>
+            <SecondaryButton>
+              <div className="flex items-center gap-2">
+                <DollarIcon />
+                Borrow
+              </div>
+            </SecondaryButton>
+          </div>
+        </div>
       </div>
-    </Dialog>
+    </div>
   );
 };
 
