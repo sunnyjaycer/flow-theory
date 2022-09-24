@@ -31,9 +31,7 @@ type CurrentDialog =
   | undefined;
 
 const Lender = () => {
-  const [currentDialog, setCurrentDialog] = useState<CurrentDialog>(
-    'withdrawConfirmationDialog'
-  );
+  const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
   const [depositAmount, setDepositAmount] = useState(0);
   const [withdrawAmount, setWithdrawAmount] = useState(0);
 
