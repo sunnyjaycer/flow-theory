@@ -3,6 +3,9 @@
 //
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
+
+const { ethers } = require('hardhat');
+
 // global scope, and execute the script.
 const { ethers } = require("hardhat");
 const hre = require("hardhat");

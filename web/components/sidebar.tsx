@@ -1,6 +1,7 @@
 import Image from 'next/image';
 import { useCurrentDashboard } from '../hooks/use-current-dashboard';
 import { GradientText } from './gradient-text';
+import { Odometer } from './odometer';
 
 export const Sidebar = () => {
   const collateralRatio = 4.2;
@@ -44,9 +45,7 @@ export const Sidebar = () => {
         </p>
         <p className="mb-4">Fixed APR | {fixedApr.toFixed(decimals)}</p>
         <h2 className="text-4xl font-thin mb-4 text-white">{interestText}</h2>
-        <GradientText className="text-8xl font-extrabold mb-4">
-          {interest.toFixed(decimals)}
-        </GradientText>
+        <Odometer start={interest} rate={0.01} />
         <div className="mb-4">
           <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
         </div>
