@@ -27,9 +27,23 @@ module.exports = {
       //   balance: ethers.utils.parseUnits("10000", 18).toString()
       // }],
       // saveDeployments: false
+    },
+    goerli: {
+      url: process.env.GOERLI_URL,
+      accounts: {
+        mnemonic: process.env.BURNER_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+        initialIndex: 0,
+        count: 10
+      }
     }
   },
   mocha: {
     timeout : 1000000000000000000
+  },
+  etherscan: {
+    apiKey: {
+      goerli: process.env.ETHERSCAN_KEY
+    }
   }
 };

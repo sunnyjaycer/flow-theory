@@ -17,6 +17,10 @@ import {
 } from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IConstantFlowAgreementV1.sol";
 
 import {
+    IInstantDistributionAgreementV1
+} from "@superfluid-finance/ethereum-contracts/contracts/interfaces/agreements/IInstantDistributionAgreementV1.sol";
+
+import {
     SuperAppBase
 } from "@superfluid-finance/ethereum-contracts/contracts/apps/SuperAppBase.sol";
 
@@ -24,9 +28,17 @@ import {
     CFAv1Library
 } from "@superfluid-finance/ethereum-contracts/contracts/apps/CFAv1Library.sol";
 
-contract LendingCore is SuperAppBase {
+import {
+    IDAv1Library
+} from "@superfluid-finance/ethereum-contracts/contracts/apps/IDAv1Library.sol";
 
-   /// @notice Setting up Superfluid CFA Library for Solidity convenience 
+import {
+    InterestManager
+} from "./InterestManager.sol";
+
+contract LendingCore {
+
+    /// @notice Setting up Superfluid CFA Library for Solidity convenience 
     using CFAv1Library for CFAv1Library.InitData;
     CFAv1Library.InitData public cfaLib;
 
@@ -52,12 +64,16 @@ contract LendingCore is SuperAppBase {
 
     /// @notice Token being used as collateral
     IERC20 public collateralToken;
+
     /// @notice Price of collateral token. 
     ///         Denominated in GRANULARITY. So, 1000 is $1
     uint256 public collateralTokenPrice;
 
     /// @notice Owner with admin permissions
     address public owner;
+
+    /// @notice Interest Manager contract which controls distributing interest payment
+    InterestManager public interestManager;
 
     /// @notice tracking the collateral and debt amounts of a borrower
     struct BorrowerProfile {
@@ -68,6 +84,9 @@ contract LendingCore is SuperAppBase {
     /// @notice mapping addresses to borrower statuses
     mapping(address => BorrowerProfile) public borrowerProfiles;
 
+    /// @notice mapping lenders to amount lent
+    mapping(address => uint256) public lenderProfiles;
+
     /// @notice when someone does a first-time borrow
     event NewLoan(address borrower);
 
@@ -77,8 +96,8 @@ contract LendingCore is SuperAppBase {
 
     constructor (
         ISuperfluid host,
-        string memory registrationKey,
         address _owner,
+        InterestManager _interestManager,
         uint256 _interestRate,
         uint256 _collateralizationRatio,
         uint256 _liquidationPenalty,
@@ -96,25 +115,20 @@ contract LendingCore is SuperAppBase {
         );
 
         owner = _owner;
+        interestManager = _interestManager;
         interestRate = _interestRate;
         collateralizationRatio = _collateralizationRatio;
         liquidationPenalty = _liquidationPenalty;
         debtToken = _debtToken;
         collateralToken = _collateralToken;
 
-        uint256 configWord = SuperAppDefinitions.APP_LEVEL_FINAL |
-            SuperAppDefinitions.BEFORE_AGREEMENT_CREATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_UPDATED_NOOP |
-            SuperAppDefinitions.BEFORE_AGREEMENT_TERMINATED_NOOP;
-
-        // Register Super App with registration key or without if testnet deployment
-        if(bytes(registrationKey).length > 0) {
-            cfaLib.host.registerAppWithKey(configWord, registrationKey);
-        } else {
-            cfaLib.host.registerApp(configWord);
-        }
+        // random: does reading from calldata for _debtToken cost more than reading from storage?
 
     }
+
+    // --------------------------------------------------------------
+    // Borrower
+    // --------------------------------------------------------------
 
     /// @notice Allows borrower to increase debt and adjusts interest payment
     /// @dev Borrow must have given LendingCore ACL permissions
@@ -141,8 +155,8 @@ contract LendingCore is SuperAppBase {
 
             // create appropriate interest payment flow
             cfaLib.createFlowByOperator(
-                msg.sender,     // borrower
-                address(this),  // lending contract 
+                msg.sender,                // borrower
+                address(interestManager),  // interest manager 
                 debtToken,
                 interestFlowRate
             );
@@ -153,8 +167,8 @@ contract LendingCore is SuperAppBase {
 
             // update to new appropriate interest payment flow
             cfaLib.updateFlowByOperator(
-                msg.sender,     // borrower
-                address(this),  // lending contract 
+                msg.sender,                // borrower
+                address(interestManager),  // interest manager 
                 debtToken,
                 interestFlowRate
             );
@@ -186,8 +200,8 @@ contract LendingCore is SuperAppBase {
 
             // delete payment flow
             cfaLib.deleteFlowByOperator(
-                msg.sender,    // borrower
-                address(this), // lending contract
+                msg.sender,               // borrower
+                address(interestManager), // interest manager
                 debtToken
             );
 
@@ -197,8 +211,8 @@ contract LendingCore is SuperAppBase {
 
             // update to new appropriate interest payment flow
             cfaLib.updateFlowByOperator(
-                msg.sender,     // borrower
-                address(this),  // lending contract 
+                msg.sender,                // borrower
+                address(interestManager),  // interest manager 
                 debtToken,
                 interestFlowRate
             );
@@ -207,7 +221,6 @@ contract LendingCore is SuperAppBase {
 
     }
     // random: ask Josh about how he learned about comp sci principles
-
 
     /// @notice Allows borrower to deposit collateral
     function depositCollateral(uint256 depositAmount) public {
@@ -231,6 +244,40 @@ contract LendingCore is SuperAppBase {
 
     }
 
+    // --------------------------------------------------------------
+    // Lender
+    // --------------------------------------------------------------
+
+    /// @notice Lend liquidity and gain interest distribution shares
+    function depositLiquidity(uint256 depositAmount) public {
+        // Pull liquidity from lender
+        debtToken.transferFrom(msg.sender, address(this), depositAmount);
+
+        // Update profile
+        lenderProfiles[msg.sender] += depositAmount;
+
+        // Update to amount of shares to lender to amount deposited
+        interestManager.updateShares(lenderProfiles[msg.sender], msg.sender);
+
+    }
+
+    /// @notice Withdraw liquidity and lose interest distribution shares
+    function withdrawLiquidity(uint256 withdrawAmount) public {
+        // Update profile
+        lenderProfiles[msg.sender] += withdrawAmount;
+
+        // Update to amount of shares to lender to amount deposited
+        interestManager.updateShares(lenderProfiles[msg.sender], msg.sender);
+
+        // Return liquidity to lender
+        debtToken.transferFrom( address(this), msg.sender, withdrawAmount);
+
+    }
+
+    // --------------------------------------------------------------
+    // Mediation
+    // --------------------------------------------------------------
+
     /// @notice Lets anyone liquidate a borrower who has fallen below permitted collateralization ratio
     function liquidate(address borrower) public {
 
@@ -245,7 +292,7 @@ contract LendingCore is SuperAppBase {
 
         // TODO: find what proper msg.sender is here in identifying liquidate being triggered in callback
         // if liquidation is being triggered in deletion because of interest calculation, we just want to unwind loan and not penalize
-        if (msg.sender == address(this)) {
+        if (msg.sender == address(interestManager)) {
             liquidationAmountDenominatedInCollateralToken = debtAmountDenominatedInCollateralToken;
         } 
 
@@ -288,123 +335,6 @@ contract LendingCore is SuperAppBase {
     /// @notice Get collateralization ratio of borrower
     function getCollateralizationRatio(address borrower) public view returns (uint256) {
         return (collateralTokenPrice * borrowerProfiles[borrower].collateralAmount * GRANULARITY) / (debtTokenPrice * borrowerProfiles[borrower].debtAmount);
-    }
-
-    /// @notice yo mama
-
-    // --------------------------------------------------------------
-    // Super Agreement Callbacks
-    // --------------------------------------------------------------
-
-    /**
-     * @dev Super App callback responding the creation of a CFA to the app
-     *
-     * Response logic in _createFlow
-     */
-    function afterAgreementCreated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32, // _agreementId,
-        bytes calldata _agreementData,
-        bytes calldata ,// _cbdata,
-        bytes calldata _ctx
-    )
-        external override
-        onlyExpected(_superToken, _agreementClass)
-        onlyHost
-        returns (bytes memory)
-    {
-        
-        // get stream initiator address from _agreementData
-        address streamStarter = cfaLib.host.decodeCtx(_ctx).msgSender;
-        console.log("Stream Starter:", streamStarter);
-
-        // only LendingCore should be starting the streams
-        require(streamStarter == address(this), "cannot start stream to LendingCore");
-
-        return _ctx;
-    
-    }
-
-    /**
-     * @dev Super App callback responding to the update of a CFA to the app
-     * 
-     * Response logic in _updateFlow
-     */
-    function afterAgreementUpdated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32 ,//_agreementId,
-        bytes calldata _agreementData,
-        bytes calldata ,//_cbdata,
-        bytes calldata _ctx
-    )
-        external override
-        onlyExpected(_superToken, _agreementClass)
-        onlyHost
-        returns (bytes memory)
-    {
-
-        // get stream initiator address from _agreementData
-        address streamStarter = cfaLib.host.decodeCtx(_ctx).msgSender;
-        console.log("Stream Starter:", streamStarter);
-
-        // only LendingCore should be starting the streams
-        require(streamStarter == address(this), "cannot update interest flow");
-
-        return _ctx;
-        
-    }
-
-    /**
-     * @dev Super App callback responding the ending of a CFA to the app
-     * 
-     * Response logic in _deleteFlow
-     */
-    function afterAgreementTerminated(
-        ISuperToken _superToken,
-        address _agreementClass,
-        bytes32 ,//_agreementId,
-        bytes calldata _agreementData,
-        bytes calldata ,//_cbdata,
-        bytes calldata _ctx
-    )
-        external override
-        onlyHost
-        returns (bytes memory newCtx)
-    {
-        // According to the app basic law, we should never revert in a termination callback
-        if (!_isValidToken(_superToken) || !_isCFAv1(_agreementClass)) return _ctx;
-
-        // get borrower address from _agreementData
-        (address borrower,) = abi.decode(_agreementData, (address,address));
-        
-        // use liquidate to unwind loan
-        liquidate(borrower);
-        
-        // return context
-        return _ctx;
-
-    }
-
-    function _isValidToken(ISuperToken superToken) private view returns (bool) {
-        return ISuperToken(superToken) == debtToken;
-    }
-
-    function _isCFAv1(address agreementClass) private view returns (bool) {
-        return ISuperAgreement(agreementClass).agreementType()
-            == keccak256("org.superfluid-finance.agreements.ConstantFlowAgreement.v1");
-    }
-
-    modifier onlyHost() {
-        require(msg.sender == address(cfaLib.host), "RedirectAll: support only one host");
-        _;
-    }
-
-    modifier onlyExpected(ISuperToken superToken, address agreementClass) {
-        require(_isValidToken(superToken), "RedirectAll: not accepted token");
-        require(_isCFAv1(agreementClass), "RedirectAll: only CFAv1 supported");
-        _;
     }
 
 }

@@ -11,7 +11,8 @@ const deploySuperToken = require("@superfluid-finance/ethereum-contracts/scripts
 
 // Instances
 let sf;                          // Superfluid framework API object
-let lendingCore;                 // spreader contract object
+let lendingCore;                 // lending core contract object
+let interestManager;             // interest manager contract object
 let dai;                         // underlying token of daix
 let daix;                        // will act as borrow token - is a super token wrapper of dai
 let weth;                        // collateral token
@@ -117,8 +118,23 @@ before(async function () {
     );
     
     await weth.connect(alice).mint(alice.address, ethers.utils.parseEther("10000"));
+
+    //// DEPLOYING INTEREST MANAGER CONTRACT
+
+    const interestManagerFactory = await ethers.getContractFactory(
+        "InterestManager",
+        admin
+    );
+
+    interestManager = await interestManagerFactory.deploy(
+        sf.settings.config.hostAddress,
+        admin.address,
+        ""
+    );
+
+    console.log("Interest Manager Contract Address:", interestManager.address);
     
-    //// INITIALIZING LENDINGCORE CONTRACT
+    //// DEPLOYING LENDINGCORE CONTRACT
 
     const lendingCoreFactory = await ethers.getContractFactory(
         "LendingCore",
@@ -127,8 +143,8 @@ before(async function () {
 
     lendingCore = await lendingCoreFactory.deploy(
         sf.settings.config.hostAddress, 
-        "",                                // registration key
         admin.address,                     // owner
+        interestManager.address,           // interest manager
         "10",                                // 1% APR
         "1500",                              // Collateralization ratio
         "100",                               // Liquidation Penalty
@@ -136,34 +152,45 @@ before(async function () {
         weth.address                       // WETH as collateral token
     );
 
-    // Fund lendingCore with 100,000 DAI
-    tx = daix.transfer({
-        receiver: lendingCore.address,
-        amount: ethers.utils.parseEther("100000")
-    });
-    tx = await tx.exec(alice);
+    console.log("LendingCore Contract Address:", lendingCore.address);
+
+    //// SET LENDING CORE CONTRACT IN INTEREST MANAGER
+
+    tx = await interestManager.connect(admin).setLendingCore(lendingCore.address);
     await tx.wait();
 
-    
+    console.log("Lending Core Set In Interest Manager")
 
-    //// SUBSCRIBING TO SPREADER CONTRACT'S IDA INDEX
+    //// SUBSCRIBING TO LENDING CORE CONTRACT'S IDA INDEX
 
-    // // subscribe to distribution (doesn't matter if this happens before or after distribution execution)
-    // const approveSubscriptionOperation = await sf.idaV1.approveSubscription({
-    //   indexId: "0",
-    //   superToken: daix.address,
-    //   publisher: spreader.address
-    // })
-    // await approveSubscriptionOperation.exec(alice);
-    // await approveSubscriptionOperation.exec(bob);
+    // subscribe to distribution (doesn't matter if this happens before or after distribution execution)
+    const approveSubscriptionOperation = await sf.idaV1.approveSubscription({
+      indexId: "0",
+      superToken: daix.address,
+      publisher: interestManager.address
+    })
+    await approveSubscriptionOperation.exec(alice);
+    await approveSubscriptionOperation.exec(bob);
 
-    console.log("Set Up Complete! - TokenSpreader Contract Address:", lendingCore.address);
+    console.log("Subscriptions Approved")
 
 });
 
-describe("TokenSpreader Test Sequence", async () => {
+describe("LendingCore Test Sequence", async () => {
 
     it("happy test", async () => {
+
+        // Bob approves lending core
+        tx = daix.approve({
+            receiver: lendingCore.address,
+            amount: ethers.utils.parseEther("1000")
+        })
+        tx = await tx.exec(bob);
+        await tx.wait();
+
+        // Bob lends out 1000 DAI
+        tx = await lendingCore.connect(bob).depositLiquidity(ethers.utils.parseEther("1000"));
+        await tx.wait();
         
         // Admin set WETH price to 1500
         tx = await lendingCore.connect(admin).setCollateralTokenPrice("1500000");
@@ -190,6 +217,7 @@ describe("TokenSpreader Test Sequence", async () => {
         await tx.wait();
 
         // Borrow 700 DAI
+        console.log("Calling Borrow");
         tx = await lendingCore.connect(alice).borrow(ethers.utils.parseEther("700"))
         await tx.wait();
 
@@ -198,7 +226,7 @@ describe("TokenSpreader Test Sequence", async () => {
             ( await sf.cfaV1.getFlow({
                 superToken: daix.address,
                 sender: alice.address,
-                receiver: lendingCore.address,
+                receiver: interestManager.address,
                 providerOrSigner: alice
             }) ).flowRate
         ).is.closeTo(
@@ -206,6 +234,58 @@ describe("TokenSpreader Test Sequence", async () => {
             EXPECATION_DIFF_LIMIT
         );
 
+        await network.provider.send("evm_increaseTime", [31536000]);
+        await network.provider.send("evm_mine");
+
+        // Expect balance of Interest Manager to be 7 DAI after a year
+        expect(
+            await daix.balanceOf({account: interestManager.address, providerOrSigner: admin})
+        ).is.closeTo(
+            ethers.BigNumber.from( ONE_PER_YEAR * 7 ).mul( ethers.BigNumber.from( 31536000 ) ),
+            10**13
+        );
+
+        // Trigger distribution
+        tx = await interestManager.connect(admin).distributeInterest();
+        await tx.wait();
+
+        let bobSub = await sf.idaV1.getSubscription({
+            superToken: daix.address,
+            publisher: interestManager.address,
+            indexId: "0", // recall this was `INDEX_ID` in TokenSpreader.sol
+            subscriber: bob.address,
+            providerOrSigner: bob
+        });
+        console.log("Bob units:", bobSub.units);
+
+        // Get outstanding units of tokenSpreader's IDA index
+        const indexDataTokenSpreader = await sf.idaV1.getIndex({
+            superToken: daix.address,
+            publisher: interestManager.address,
+            indexId: "0",
+            providerOrSigner: bob
+        });
+
+        console.log(
+            "TokenSpreader Units Approved:",
+            indexDataTokenSpreader.totalUnitsApproved
+        );
+        console.log(
+            "TokenSpreader Units Pending:",
+            indexDataTokenSpreader.totalUnitsPending,
+            "\n"
+        );
+
+        await network.provider.send("evm_increaseTime", [31536000]);
+        await network.provider.send("evm_mine");
+
+        // Expect balance of interest manager to be zeroed out
+        // expect(
+        //     await daix.balanceOf({account: interestManager.address, providerOrSigner: bob})
+        // ).is.closeTo(
+        //     ethers.BigNumber.from( 0 ),
+        //     10**13
+        // )
     })
 
 });
