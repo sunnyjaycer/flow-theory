@@ -7,54 +7,77 @@
 const { ethers } = require('hardhat');
 
 // global scope, and execute the script.
-const hre = require('hardhat');
-// import { ethers } from '@nomiclabs/hardhat-ethers';
+const { ethers } = require("hardhat");
+const hre = require("hardhat");
+const { Framework } = require("@superfluid-finance/sdk-core");
+// const TestTokenABI =  require("@superfluid-finance/ethereum-contracts/build/contracts/TestToken.json");
 
 async function main() {
-  const [deployer] = await ethers.getSigners();
-  console.log('deployer', deployer.address);
 
-  console.log('Deploying contracts with the account:', deployer);
-  console.log('Account balance:', (await deployer.getBalance()).toString());
+  let alice;
+  let bob;
+  let admin;
 
-  const LendingCore = await ethers.getContractFactory('LendingCore');
-  const host = '0x22ff293e14F1EC3A09B137e9e06084AFd63adDF9'; // Superfluid host Goerli
-  const usdc = '0x8aE68021f6170E5a766bE613cEA0d75236ECCa9a'; // USDCx on Goerly
-  const weth = '0x771729814E0278d96C4C78A8768475bF40d71A91'; // Manually deployed weth contract on goerly
-  const lendingCore = await LendingCore.deploy(
-    host,
-    '',
-    deployer.address,
-    10,
-    10,
-    10,
-    usdc,
-    weth
-  );
+  [alice, bob, admin] = await ethers.getSigners();
 
-  // These will be done by oracle in the future
-  await lendingCore.setCollateralTokenPrice(1300 * 1000);
-  await lendingCore.setDebtTokenPrice(1 * 1000);
+  console.log("Alice: ", alice.address);
+  console.log("Bob  : ", bob.address);
+  console.log("Admin: ", admin.address);
 
-  await lendingCore.deployed();
-  console.log('Deploy successful. Address:', lendingCore.address);
+  const url = `${process.env.GOERLI_URL}`;
+  const customHttpProvider = new ethers.providers.JsonRpcProvider(url);
+  const network = await customHttpProvider.getNetwork();
 
-  provider = new hre.ethers.providers.JsonRpcProvider(
-    config.networks.goerli.url
-  );
-  const { Framework } = require('@superfluid-finance/sdk-core');
   const sf = await Framework.create({
-    chainId: (await provider.getNetwork()).chainId,
-    provider,
+    chainId: network.chainId,
+    provider: customHttpProvider
   });
-  const usdcx = await sf.loadSuperToken('fUSDCx');
-  const aclApproval = sf.cfaV1.updateFlowOperatorPermissions({
-    flowOperator: lendingCore.address,
-    superToken: usdcx.address,
-    flowRateAllowance: '3858024691358024',
-    permissions: 7,
-  });
-  tx = await aclApproval.exec(deployer);
+
+  const usdcx = await sf.loadSuperToken("fUSDCx")
+
+  const interestManagerFactory = await ethers.getContractFactory(
+    "InterestManager",
+    admin
+  );
+
+  const interestManager = await interestManagerFactory.deploy(
+    sf.settings.config.hostAddress,
+    admin.address,
+    ""
+  );
+  await interestManager.deployed();
+
+  console.log("Interest Manager Address:", interestManager.address)
+  
+  const weth = await ethers.getContractAt(
+    "TestToken",
+    "0x5AF1c2B6275ECE07351Ab808dc54864f0f2747A1"
+  );
+
+  const lendingCoreFactory = await ethers.getContractFactory(
+    "LendingCore",
+    admin
+  );
+
+  const lendingCore = await lendingCoreFactory.deploy(
+      sf.settings.config.hostAddress, 
+      admin.address,                     // owner
+      interestManager.address,           // interest manager
+      "10",                              // 1% APR
+      "1500",                            // Collateralization ratio
+      "100",                             // Liquidation Penalty
+      usdcx.address,                     // Setting DAIx as borrow token
+      weth.address                       // WETH as collateral token
+  );
+  await lendingCore.deployed();
+
+  console.log("Lending Core Address:", lendingCore.address)
+
+  let slcTx = await interestManager.connect(admin).setLendingCore(lendingCore.address);
+  await slcTx.wait();
+
+  console.log("Lending Core set in Interest Manager");
+
 }
 
 // We recommend this pattern to be able to use async/await everywhere
