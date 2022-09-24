@@ -11,12 +11,12 @@ import { DashboardSelector } from '../components/dashboard-selector';
 import { Sidebar } from '../components/sidebar';
 
 const { chains, provider } = configureChains(
-  [chain.mainnet, chain.polygon, chain.optimism, chain.arbitrum],
+  [chain.goerli, chain.mainnet, chain.polygon, chain.optimism, chain.arbitrum],
   [alchemyProvider({ apiKey: process.env.ALCHEMY_ID }), publicProvider()]
 );
 
 const { connectors } = getDefaultWallets({
-  appName: 'My RainbowKit App',
+  appName: 'Flow Theory',
   chains,
 });
 
