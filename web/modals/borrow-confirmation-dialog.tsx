@@ -7,6 +7,7 @@ import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
 import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
 import { Dialog } from '../components/dialog';
 import Image from 'next/image';
+import { wethToUSD } from '../helpers/conversion';
 
 export const BorrowConfirmationDialog = ({
   collateralAmount,
@@ -25,7 +26,7 @@ export const BorrowConfirmationDialog = ({
   closeDialog: VoidFunction;
   onBack: VoidFunction;
 }) => {
-  const borrowAmountInUSDC = borrowAmount * 1300; // TODO: This should use real exchange rate
+  const borrowAmountInUSD = wethToUSD(borrowAmount);
 
   // const lendingCoreAddress = useLendingCoreAddress();
   // console.log('lendingCoreAddress', lendingCoreAddress);
@@ -58,7 +59,7 @@ export const BorrowConfirmationDialog = ({
           <h2 className="text-2xl font-thin mb-4">Borrow</h2>
           <Image src="/weth-logo.png" width={50} height={50} alt="USDC Logo" />
           <p className="font-bold text-brand-blue text-3xl">{borrowAmount}</p>
-          <p className="font-thin text-blue--3">${borrowAmountInUSDC}</p>
+          <p className="font-thin text-blue--3">${borrowAmountInUSD}</p>
         </div>
       </div>
 

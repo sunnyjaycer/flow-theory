@@ -31,12 +31,20 @@ import { BorrowDialog } from '../modals/borrow-dialog';
 import { BorrowConfirmationDialog } from '../modals/borrow-confirmation-dialog';
 import { DepositDialog } from '../modals/deposit-dialog';
 import { DepositConfirmationDialog } from '../modals/deposit-confirmation-dialog';
+import { WithdrawDialog } from '../modals/withdraw-dialog';
+import { WithdrawConfirmationDialog } from '../modals/withdraw-confirmation-dialog';
+import { RepayDialog } from '../modals/repay-dialog';
+import { RepayConfirmationDialog } from '../modals/repay-confirmation-dialog';
 
 type CurrentDialog =
   | 'borrowDialog'
   | 'borrowConfirmationDialog'
   | 'depositDialog'
   | 'depositConfirmationDialog'
+  | 'withdrawDialog'
+  | 'withdrawConfirmationDialog'
+  | 'repayDialog'
+  | 'repayConfirmationDialog'
   | undefined;
 
 const DECIMALS = 2;
@@ -50,16 +58,19 @@ const Borrower = () => {
   const [collateralAmount, setCollateralAmount] = useState(0);
   const [borrowAmount, setBorrowAmount] = useState(0);
   const [depositAmount, setDepositAmount] = useState(0);
+  const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [repayAmount, setRepayAmount] = useState(0);
 
   const exitDialog = () => {
     setCurrentDialog(undefined);
     setCollateralAmount(0);
     setBorrowAmount(0);
     setDepositAmount(0);
+    setWithdrawAmount(0);
+    setRepayAmount(0);
   };
 
   const { address } = useAccount();
-  console.log('address', address);
   const lendingCoreAddress = useLendingCoreAddress();
   const { data, isError, isLoading } = useContractRead({
     addressOrName: lendingCoreAddress,
@@ -72,12 +83,12 @@ const Borrower = () => {
   const currentBorrowAmount = 10;
 
   // TODO: These should come from subgraph
-  // const currentCollateralAmount = 0;
-  // const currentBorrowAmount = 0;
   const interestRate = 0.01;
+  const interestPaid = 10;
 
-  const totalBorrowAmount = currentBorrowAmount + borrowAmount - depositAmount;
-  const totalCollateralAmount = currentCollateralAmount + collateralAmount;
+  const totalBorrowAmount = currentBorrowAmount + borrowAmount - repayAmount;
+  const totalCollateralAmount =
+    currentCollateralAmount + collateralAmount + depositAmount - withdrawAmount;
 
   const getNewCollateralRatio = () => {
     if (totalBorrowAmount <= 0) {
@@ -102,6 +113,8 @@ const Borrower = () => {
       ) : (
         <BorrowsTable
           openDepositDialog={() => setCurrentDialog('depositDialog')}
+          openWithdrawDialog={() => setCurrentDialog('withdrawDialog')}
+          openRepayDialog={() => setCurrentDialog('repayDialog')}
         />
       )}
       <BorrowDialog
@@ -140,6 +153,41 @@ const Borrower = () => {
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('depositDialog')}
       />
+      <WithdrawDialog
+        withdrawAmount={withdrawAmount}
+        setWithdrawAmount={setWithdrawAmount}
+        repayAmount={repayAmount}
+        setRepayAmount={setRepayAmount}
+        newCollateralRatio={newCollateralRatio}
+        newInterest={newInterest}
+        showDialog={currentDialog === 'withdrawDialog'}
+        closeDialog={exitDialog}
+        onApprove={() => setCurrentDialog('withdrawConfirmationDialog')}
+      />
+      <WithdrawConfirmationDialog
+        withdrawAmount={withdrawAmount}
+        repayAmount={repayAmount}
+        interestPaid={interestPaid}
+        showDialog={currentDialog === 'withdrawConfirmationDialog'}
+        closeDialog={exitDialog}
+        onBack={() => setCurrentDialog('withdrawDialog')}
+      />
+      <RepayDialog
+        repayAmount={repayAmount}
+        setRepayAmount={setRepayAmount}
+        newCollateralRatio={newCollateralRatio}
+        newInterest={newInterest}
+        showDialog={currentDialog === 'repayDialog'}
+        closeDialog={exitDialog}
+        onApprove={() => setCurrentDialog('repayConfirmationDialog')}
+      />
+      <RepayConfirmationDialog
+        repayAmount={repayAmount}
+        interestPaid={interestPaid}
+        showDialog={currentDialog === 'repayConfirmationDialog'}
+        closeDialog={exitDialog}
+        onBack={() => setCurrentDialog('repayDialog')}
+      />
     </>
   );
 };
@@ -168,8 +216,12 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
 
 const BorrowsTable = ({
   openDepositDialog,
+  openWithdrawDialog,
+  openRepayDialog,
 }: {
   openDepositDialog: VoidFunction;
+  openWithdrawDialog: VoidFunction;
+  openRepayDialog: VoidFunction;
 }) => {
   const Header = ({ children }: { children: ReactNode }) => {
     return <h1 className="bg-blue-3 p-4 font-thin mb-4">{children}</h1>;
@@ -192,7 +244,7 @@ const BorrowsTable = ({
                 Deposit
               </div>
             </PrimaryButton>
-            <SecondaryButton>
+            <SecondaryButton onClick={openWithdrawDialog}>
               <div className="flex items-center gap-2">
                 <MinusIcon />
                 Withdraw
@@ -207,7 +259,7 @@ const BorrowsTable = ({
           <Image src="/usdc-logo.png" width={50} height={50} alt="" />
           <p>{borrowedAmount.toFixed(DECIMALS)}</p>
           <div className="flex h-fit gap-8">
-            <PrimaryButton>
+            <PrimaryButton onClick={openRepayDialog}>
               <div className="flex items-center gap-2">
                 <RepayIcon />
                 Repay
