@@ -107,6 +107,8 @@ export const BorrowConfirmationDialog = ({
 
   const sufficientPermissions = operatorData?.permissions === '7';
 
+  // TODO: I want to clean this up by calling the contract directly.
+  // This will allow for a ux improvement where page doesn't have to be refreshed after approval
   const [grantingSfPermissions, setGrantingSfPermissions] = useState(false);
   const onClickAllowFlow = async () => {
     try {
