@@ -73,7 +73,7 @@ const BorrowerSidebar = () => {
   } = useQuery(GET_STREAMS, {
     variables: {
       sender: address?.toLowerCase() ?? '', // LOWERCASE FOR SOME REASON LMAO
-      receiver: interestMaanagerAddress,
+      receiver: interestMaanagerAddress.toLowerCase(),
     },
   });
 

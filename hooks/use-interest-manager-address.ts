@@ -9,7 +9,7 @@ export const useInterestManagerAddress = () => {
   }
 
   const contractAddress = {
-    [chainId.goerli]: '0x86734dad0dc33fe712ec1179e60b09469e7fb83b',
+    [chainId.goerli]: '0xcCC25F477249Aab44b4b16567539AbD37C40A4b8',
     [chainId.rinkeby]: '0x0000000000000000000000000000000000000000',
     [chainId.mainnet]: '0x0000000000000000000000000000000000000000',
     [chainId.optimismGoerli]: '0xa9a74Eb69F30e19Dd88990e8a0E1c461aDC6d0db',
