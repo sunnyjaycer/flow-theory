@@ -4,6 +4,7 @@ import { DECIMALS } from '../../constants';
 import { PrimaryButton } from '../../components/primary-button';
 import { DialogColumn } from '../../components/dialog-column';
 import { DialogInput } from '../../components/dialog-input';
+import { BigNumber } from 'ethers';
 
 export const DepositDialog = ({
   depositAmount,
@@ -13,9 +14,9 @@ export const DepositDialog = ({
   closeDialog,
   onApprove,
 }: {
-  depositAmount: number;
-  setDepositAmount: Dispatch<SetStateAction<number>>;
-  newCollateralRatio?: number;
+  depositAmount: BigNumber;
+  setDepositAmount: Dispatch<SetStateAction<BigNumber>>;
+  newCollateralRatio?: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -30,7 +31,7 @@ export const DepositDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Deposit Collateral">
             <DialogInput
-              value={depositAmount}
+              value={depositAmount.toString()}
               label="Amount"
               onChange={setDepositAmount}
               icon={'/weth-logo.png'}
@@ -43,7 +44,7 @@ export const DepositDialog = ({
           <span>
             {newCollateralRatio === undefined
               ? '--:--'
-              : newCollateralRatio.toFixed(DECIMALS)}{' '}
+              : newCollateralRatio.toString()}{' '}
           </span>
         </div>
         <div>

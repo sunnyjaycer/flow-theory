@@ -35,20 +35,15 @@ export const useTokenPrices = () => {
     isFetchingGranularity;
   if (loading) {
     return {
-      collateralTokenPrice: 0,
-      debtTokenPrice: 0,
+      collateralTokenPrice: BigNumber.from(0),
+      debtTokenPrice: BigNumber.from(0),
+      granularity: BigNumber.from(1),
     };
   }
 
-  const formattedCollateralTokenPrice = (
-    collateralTokenPrice as any as BigNumber
-  ).div(granularity as any as BigNumber);
-  const formattedDebtTokenPrice = (debtTokenPrice as any as BigNumber).div(
-    granularity as any as BigNumber
-  );
-
   return {
-    collateralTokenPrice: formattedCollateralTokenPrice.toNumber(),
-    debtTokenPrice: formattedDebtTokenPrice.toNumber(),
+    collateralTokenPrice: collateralTokenPrice as any as BigNumber,
+    debtTokenPrice: debtTokenPrice as any as BigNumber,
+    granularity: granularity as any as BigNumber,
   };
 };

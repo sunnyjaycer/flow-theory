@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { Dispatch, SetStateAction } from 'react';
 import { Dialog } from '../../components/dialog';
 import { DialogColumn } from '../../components/dialog-column';
@@ -21,12 +22,12 @@ export const WithdrawDialog = ({
   closeDialog,
   onApprove,
 }: {
-  withdrawAmount: number;
-  setWithdrawAmount: Dispatch<SetStateAction<number>>;
-  repayAmount: number;
-  setRepayAmount: Dispatch<SetStateAction<number>>;
-  newCollateralRatio?: number;
-  newInterest: number;
+  withdrawAmount: BigNumber;
+  setWithdrawAmount: Dispatch<SetStateAction<BigNumber>>;
+  repayAmount: BigNumber;
+  setRepayAmount: Dispatch<SetStateAction<BigNumber>>;
+  newCollateralRatio?: BigNumber;
+  newInterest: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -41,7 +42,7 @@ export const WithdrawDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Withdraw Collateral">
             <DialogInput
-              value={withdrawAmount}
+              value={withdrawAmount.toString()}
               label="Amount"
               onChange={setWithdrawAmount}
               icon={'/weth-logo.png'}
@@ -56,7 +57,7 @@ export const WithdrawDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Repay Loan">
             <DialogInput
-              value={repayAmount}
+              value={repayAmount.toString()}
               label="Amount"
               onChange={setRepayAmount}
               icon={'/usdc-logo.png'}
@@ -70,7 +71,7 @@ export const WithdrawDialog = ({
               <span>
                 {newCollateralRatio === undefined
                   ? '--:--'
-                  : newCollateralRatio.toFixed(DECIMALS)}{' '}
+                  : newCollateralRatio.toString()}{' '}
               </span>
             </div>
 
@@ -78,7 +79,7 @@ export const WithdrawDialog = ({
 
             <div className="mb-4">
               <span className="font-bold">New Interest: </span>
-              <span>{newInterest.toFixed(DECIMALS)}/year</span>
+              <span>{newInterest.toString()}/year</span>
             </div>
           </DialogColumn>
           <div className="text-right mt-4">

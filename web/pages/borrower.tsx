@@ -27,7 +27,7 @@ import { TableHeader } from '../components/table-header';
 import { Loading } from '../components/loading';
 import { useTokenPrices } from '../hooks/use-token-prices';
 import { useWethAddress } from '../hooks/use-weth-address';
-import { ethers } from 'ethers';
+import { BigNumber, ethers, FixedNumber } from 'ethers';
 import { useWriteWithWait } from '../hooks/use-write-with-wait';
 
 type CurrentDialog =
@@ -48,70 +48,80 @@ const Borrower = () => {
   const onApproveDeposit = () => {
     setCurrentDialog('borrowConfirmationDialog');
   };
-  const [collateralAmount, setCollateralAmount] = useState(0);
-  const [borrowAmount, setBorrowAmount] = useState(0);
-  const [depositAmount, setDepositAmount] = useState(0);
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
-  const [repayAmount, setRepayAmount] = useState(0);
-
-  const exitDialog = () => {
-    setCurrentDialog(undefined);
-    setCollateralAmount(0);
-    setBorrowAmount(0);
-    setDepositAmount(0);
-    setWithdrawAmount(0);
-    setRepayAmount(0);
-  };
+  const [collateralAmount, setCollateralAmount] = useState(BigNumber.from(0));
+  const [borrowAmount, setBorrowAmount] = useState(BigNumber.from(0));
+  const [depositAmount, setDepositAmount] = useState(BigNumber.from(0));
+  const [withdrawAmount, setWithdrawAmount] = useState(BigNumber.from(0));
+  const [repayAmount, setRepayAmount] = useState(BigNumber.from(0));
 
   const { address } = useAccount();
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
-  const { data: borrowerProfile, isFetching: isFetchingBorrowerProfiles } =
-    useContractRead({
-      addressOrName: lendingCoreAddress,
-      contractInterface: lendingCoreAbi,
-      functionName: 'borrowerProfiles',
-      args: [address],
-    });
-  const currentCollateralAmount = borrowerProfile?.collateralAmount.toNumber();
-  const currentBorrowAmount = borrowerProfile?.debtAmount.toNumber();
+  const {
+    data: borrowerProfile,
+    isFetching: isFetchingBorrowerProfiles,
+    refetch: refetchBorrowerProfiles,
+  } = useContractRead({
+    addressOrName: lendingCoreAddress,
+    contractInterface: lendingCoreAbi,
+    functionName: 'borrowerProfiles',
+    args: [address],
+  });
+  const currentCollateralAmount =
+    borrowerProfile?.collateralAmount as any as BigNumber;
+  const currentBorrowAmount = borrowerProfile?.debtAmount as any as BigNumber;
 
-  const { collateralTokenPrice, debtTokenPrice } = useTokenPrices();
+  const { collateralTokenPrice, debtTokenPrice, granularity } =
+    useTokenPrices();
 
-  // TODO: These should come from subgraph
-  const interestRate = 0.01;
-  const interestPaid = 10;
+  const exitDialog = () => {
+    setCurrentDialog(undefined);
+    setCollateralAmount(BigNumber.from(0));
+    setBorrowAmount(BigNumber.from(0));
+    setDepositAmount(BigNumber.from(0));
+    setWithdrawAmount(BigNumber.from(0));
+    setRepayAmount(BigNumber.from(0));
 
-  const totalBorrowAmount = currentBorrowAmount + borrowAmount - repayAmount;
-  const totalCollateralAmount =
-    currentCollateralAmount + collateralAmount + depositAmount - withdrawAmount;
-
-  const getNewCollateralRatio = () => {
-    if (totalBorrowAmount <= 0) {
-      // Guard against divide by 0
-      return;
-    }
-
-    return (
-      (totalCollateralAmount * collateralTokenPrice) /
-      (totalBorrowAmount * debtTokenPrice)
-    );
+    refetchBorrowerProfiles();
   };
-
-  const getNewInterest = () => {
-    return totalBorrowAmount * interestRate;
-  };
-
-  const newCollateralRatio = getNewCollateralRatio();
-  const newInterest = getNewInterest();
 
   if (isFetchingBorrowerProfiles) {
     return <Loading />;
   }
 
+  // TODO: These should come from subgraph
+  const interestRate = BigNumber.from(10);
+  const interestPaid = BigNumber.from(10);
+
+  const totalBorrowAmount = currentBorrowAmount
+    .add(borrowAmount)
+    .sub(repayAmount);
+  const totalCollateralAmount = currentCollateralAmount
+    .add(collateralAmount)
+    .add(depositAmount)
+    .sub(withdrawAmount);
+
+  const getNewCollateralRatio = () => {
+    if (totalBorrowAmount.lte(0)) {
+      // Guard against divide by 0
+      return;
+    }
+
+    return totalCollateralAmount
+      .mul(collateralTokenPrice)
+      .div(totalBorrowAmount.mul(debtTokenPrice));
+  };
+
+  const getNewInterest = () => {
+    return totalBorrowAmount.mul(interestRate).div(granularity);
+  };
+
+  const newCollateralRatio = getNewCollateralRatio();
+  const newInterest = getNewInterest();
+
   return (
     <>
-      {currentBorrowAmount === 0 ? (
+      {currentCollateralAmount.eq(0) ? (
         <NoBorrows openDialog={() => setCurrentDialog('depositDialog')} />
       ) : (
         <BorrowsTable
@@ -135,7 +145,7 @@ const Borrower = () => {
       <BorrowConfirmationDialog
         collateralAmount={collateralAmount}
         borrowAmount={borrowAmount}
-        collateralRatio={newCollateralRatio ?? 0}
+        collateralRatio={newCollateralRatio ?? BigNumber.from(0)}
         interest={newInterest}
         showDialog={currentDialog === 'borrowConfirmationDialog'}
         closeDialog={exitDialog}
@@ -150,8 +160,7 @@ const Borrower = () => {
         onApprove={() => setCurrentDialog('depositConfirmationDialog')}
       />
       <DepositConfirmationDialog
-        collateralRatio={newCollateralRatio ?? 0}
-        interest={newInterest}
+        collateralRatio={newCollateralRatio ?? BigNumber.from(0)}
         depositAmount={depositAmount}
         showDialog={currentDialog === 'depositConfirmationDialog'}
         closeDialog={exitDialog}
@@ -211,7 +220,6 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
     args: [owner, lendingCoreAddress],
   });
   const allowance = Number(data?.toString());
-  console.log('allowance', allowance);
 
   const { config: configIncreaseAllowance, isLoading: loadingApproval } =
     usePrepareContractWrite({

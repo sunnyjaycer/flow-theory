@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { Dispatch, SetStateAction } from 'react';
 import { Dialog } from '../../components/dialog';
 import { DialogColumn } from '../../components/dialog-column';
@@ -16,10 +17,10 @@ export const RepayDialog = ({
   closeDialog,
   onApprove,
 }: {
-  repayAmount: number;
-  setRepayAmount: Dispatch<SetStateAction<number>>;
-  newCollateralRatio?: number;
-  newInterest: number;
+  repayAmount: BigNumber;
+  setRepayAmount: Dispatch<SetStateAction<BigNumber>>;
+  newCollateralRatio?: BigNumber;
+  newInterest: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -34,7 +35,7 @@ export const RepayDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Repay Loan">
             <DialogInput
-              value={repayAmount}
+              value={repayAmount.toString()}
               label="Amount"
               onChange={setRepayAmount}
               icon={'/usdc-logo.png'}
@@ -50,7 +51,7 @@ export const RepayDialog = ({
           <span>
             {newCollateralRatio === undefined
               ? '--:--'
-              : newCollateralRatio.toFixed(DECIMALS)}{' '}
+              : newCollateralRatio.toString()}{' '}
           </span>
         </div>
         <GradientText className="mb-4">
@@ -59,7 +60,7 @@ export const RepayDialog = ({
         </GradientText>
         <div className="mb-4">
           <span className="font-bold">New Interest: </span>
-          <span>{newInterest.toFixed(DECIMALS)}</span>
+          <span>{newInterest.toString()}</span>
         </div>
         <div>
           <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>

@@ -1,6 +1,7 @@
 import { ChangeEvent, Dispatch, ReactNode, SetStateAction } from 'react';
 import { onChangeNumberAmount } from '../helpers/number-helpers';
 import Image from 'next/image';
+import { BigNumber } from 'ethers';
 
 export const DialogInput = ({
   value,
@@ -16,7 +17,7 @@ export const DialogInput = ({
   label: string;
   buttonText?: string;
   className?: string;
-  onChange: Dispatch<SetStateAction<number>>;
+  onChange: Dispatch<SetStateAction<BigNumber>>;
   onButtonPress?: VoidFunction;
 }) => {
   // Dialog Input is always used for a number input right now

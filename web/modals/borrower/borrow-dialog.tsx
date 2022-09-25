@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import Image from 'next/image';
 import { Dispatch, SetStateAction, ChangeEvent } from 'react';
 import { Dialog } from '../../components/dialog';
@@ -19,12 +20,12 @@ export const BorrowDialog = ({
   closeDialog,
   onApprove,
 }: {
-  collateralAmount: number;
-  setCollateralAmount: Dispatch<SetStateAction<number>>;
-  borrowAmount: number;
-  setBorrowAmount: Dispatch<SetStateAction<number>>;
-  newCollateralRatio?: number;
-  newInterest: number;
+  collateralAmount: BigNumber;
+  setCollateralAmount: Dispatch<SetStateAction<BigNumber>>;
+  borrowAmount: BigNumber;
+  setBorrowAmount: Dispatch<SetStateAction<BigNumber>>;
+  newCollateralRatio?: BigNumber;
+  newInterest: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -39,7 +40,7 @@ export const BorrowDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Add Collateral">
             <DialogInput
-              value={collateralAmount}
+              value={collateralAmount.toString()}
               label="Amount"
               onChange={setCollateralAmount}
               icon={'/weth-logo.png'}
@@ -52,7 +53,7 @@ export const BorrowDialog = ({
         <div className="flex-1 text-left">
           <DialogColumn title="Borrow">
             <DialogInput
-              value={borrowAmount}
+              value={borrowAmount.toString()}
               label="Amount"
               onChange={setBorrowAmount}
               icon={'/usdc-logo.png'}
@@ -64,7 +65,7 @@ export const BorrowDialog = ({
             <span>
               {newCollateralRatio === undefined
                 ? '--:--'
-                : newCollateralRatio.toFixed(DECIMALS)}{' '}
+                : newCollateralRatio.toString()}{' '}
             </span>
           </div>
 
@@ -72,7 +73,7 @@ export const BorrowDialog = ({
 
           <div className="mb-4">
             <span className="font-bold">New Interest: </span>
-            <span>{newInterest.toFixed(DECIMALS)}/year</span>
+            <span>{newInterest.toString()}/year</span>
           </div>
           <div className="text-right mt-4">
             <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>

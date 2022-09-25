@@ -1,4 +1,6 @@
-export const wethToUSD = (wethAmount: number) => {
+import { BigNumber } from 'ethers';
+
+export const wethToUSD = (wethAmount: BigNumber) => {
   // TODO: This should come from a data source
-  return wethAmount * 1300;
+  return wethAmount.mul(1300);
 };

@@ -9,6 +9,7 @@ import { Dialog } from '../../components/dialog';
 import Image from 'next/image';
 import { wethToUSD } from '../../helpers/conversion';
 import { DialogColumn } from '../../components/dialog-column';
+import { BigNumber } from 'ethers';
 
 export const BorrowConfirmationDialog = ({
   collateralAmount,
@@ -19,10 +20,10 @@ export const BorrowConfirmationDialog = ({
   closeDialog,
   onBack,
 }: {
-  collateralAmount: number;
-  borrowAmount: number;
-  collateralRatio: number;
-  interest: number;
+  collateralAmount: BigNumber;
+  borrowAmount: BigNumber;
+  collateralRatio: BigNumber;
+  interest: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onBack: VoidFunction;
@@ -55,32 +56,34 @@ export const BorrowConfirmationDialog = ({
               alt="USDC Logo"
             />
             <p className="font-bold text-brand-blue text-3xl">
-              {collateralAmount}
+              {collateralAmount.toString()}
             </p>
             {/* Assuming the collateral amount is always USDC for now */}
-            <p className="font-thin text-blue--3">${collateralAmount}</p>
+            <p className="font-thin text-blue--3">
+              ${collateralAmount.toString()}
+            </p>
           </DialogColumn>
         </div>
 
         <div className="flex-1 text-left">
           <h2 className="text-2xl font-thin mb-4">Borrow</h2>
           <Image src="/weth-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-bold text-brand-blue text-3xl">{borrowAmount}</p>
-          <p className="font-thin text-blue--3">${borrowAmountInUSD}</p>
+          <p className="font-bold text-brand-blue text-3xl">
+            {borrowAmount.toString()}
+          </p>
+          <p className="font-thin text-blue--3">
+            ${borrowAmountInUSD.toString()}
+          </p>
         </div>
       </div>
 
       <div className="text-left mb-4">
         <p className="font-bold text-lg">Collateral Ratio</p>
-        <p className="font-thin text-3xl">
-          {collateralRatio.toFixed(DECIMALS)}
-        </p>
+        <p className="font-thin text-3xl">{collateralRatio.toString()}</p>
         <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
         <div>
           <span className="font-bold">Interest: </span>
-          <span className="font-thin">
-            USDC {interest.toFixed(DECIMALS)}/year
-          </span>
+          <span className="font-thin">USDC {interest.toString()}/year</span>
         </div>
       </div>
 

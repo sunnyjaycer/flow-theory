@@ -5,6 +5,7 @@ import { PrimaryButton } from '../../components/primary-button';
 import { SecondaryButton } from '../../components/secondary-button';
 import { DECIMALS } from '../../constants';
 import { DialogColumn } from '../../components/dialog-column';
+import { BigNumber } from 'ethers';
 
 export const WithdrawConfirmationDialog = ({
   withdrawAmount,
@@ -14,9 +15,9 @@ export const WithdrawConfirmationDialog = ({
   closeDialog,
   onBack,
 }: {
-  withdrawAmount: number;
-  repayAmount: number;
-  interestPaid: number;
+  withdrawAmount: BigNumber;
+  repayAmount: BigNumber;
+  interestPaid: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onBack: VoidFunction;
@@ -39,10 +40,12 @@ export const WithdrawConfirmationDialog = ({
               alt="USDC Logo"
             />
             <p className="font-bold text-brand-blue text-3xl">
-              {withdrawAmount}
+              {withdrawAmount.toString()}
             </p>
             {/* Assuming the collateral amount is always USDC for now */}
-            <p className="font-thin text-blue--3">${withdrawAmount}</p>
+            <p className="font-thin text-blue--3">
+              ${withdrawAmount.toString()}
+            </p>
           </DialogColumn>
         </div>
 
@@ -54,17 +57,19 @@ export const WithdrawConfirmationDialog = ({
               height={50}
               alt="WETH Logo"
             />
-            <p className="font-bold text-brand-blue text-3xl">{repayAmount}</p>
-            <p className="font-thin text-blue--3">${repayAmountInUSD}</p>
+            <p className="font-bold text-brand-blue text-3xl">
+              {repayAmount.toString()}
+            </p>
+            <p className="font-thin text-blue--3">
+              ${repayAmountInUSD.toString()}
+            </p>
           </DialogColumn>
         </div>
       </div>
 
       <div className="text-left mb-4">
         <p className="font-bold text-lg">Interest Paid</p>
-        <p className="font-light text-3xl">
-          {interestPaid.toFixed(DECIMALS)} USDCx
-        </p>
+        <p className="font-light text-3xl">{interestPaid.toString()} USDCx</p>
       </div>
 
       <div className="flex justify-between">
