@@ -61,6 +61,8 @@ const Lender = () => {
   // TODO: This needs to come from contract
   const interestGained = 10;
 
+  if (owner === undefined) return null;
+
   if (fetchingAllowance) {
     return <Loading />;
   }

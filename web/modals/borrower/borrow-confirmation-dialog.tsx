@@ -99,6 +99,7 @@ export const BorrowConfirmationDialog = ({
     contractInterface: lendingCoreAbi,
     functionName: 'borrow',
     args: [parsedBorrowAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmBorrow } = useContractWrite(config);
   const { loading: confirmBorrowLoading, callWithWait: onClickConfirmBorrow } =

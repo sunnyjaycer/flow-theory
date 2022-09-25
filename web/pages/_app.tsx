@@ -9,6 +9,17 @@ import { alchemyProvider } from 'wagmi/providers/alchemy';
 import { publicProvider } from 'wagmi/providers/public';
 import { DashboardSelector } from '../components/dashboard-selector';
 import { Sidebar } from '../components/sidebar';
+import {
+  ApolloClient,
+  InMemoryCache,
+  ApolloProvider,
+  gql,
+} from '@apollo/client';
+
+const client = new ApolloClient({
+  uri: 'https://api.thegraph.com/subgraphs/name/superfluid-finance/protocol-v1-goerli',
+  cache: new InMemoryCache(),
+});
 
 const { chains, provider } = configureChains(
   [chain.goerli, chain.mainnet, chain.polygon, chain.optimism, chain.arbitrum],
@@ -30,14 +41,16 @@ function MyApp({ Component, pageProps }: AppProps) {
   return (
     <WagmiConfig client={wagmiClient}>
       <RainbowKitProvider chains={chains}>
-        <Header />
-        <DashboardSelector />
-        <div className="flex flex-col md:flex-row gap-8 md:gap-0 mt-16">
-          <Sidebar />
-          <div className="flex-1">
-            <Component {...pageProps} />
+        <ApolloProvider client={client}>
+          <Header />
+          <DashboardSelector />
+          <div className="flex flex-col md:flex-row gap-8 md:gap-0 mt-16">
+            <Sidebar />
+            <div className="flex-1">
+              <Component {...pageProps} />
+            </div>
           </div>
-        </div>
+        </ApolloProvider>
       </RainbowKitProvider>
     </WagmiConfig>
   );
