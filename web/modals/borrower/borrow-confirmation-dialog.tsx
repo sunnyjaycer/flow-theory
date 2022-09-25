@@ -90,7 +90,6 @@ export const BorrowConfirmationDialog = ({
   const parsedBorrowAmount = parseEther(
     borrowAmount === '' ? '0' : borrowAmount
   );
-  console.log('parsedBorrowAmount', parsedBorrowAmount.toString());
   const { operatorData, grantSfPermissions } = useSfPermissions();
 
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
