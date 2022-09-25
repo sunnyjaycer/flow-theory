@@ -2,7 +2,7 @@ import Image from 'next/image';
 import { useCurrentDashboard } from '../hooks/use-current-dashboard';
 import { GradientText } from './gradient-text';
 import { Odometer } from './odometer';
-import { useQuery, gql } from '@apollo/client';
+import { useQuery, gql, useLazyQuery } from '@apollo/client';
 import { useEffect, useState } from 'react';
 import { formatEther } from 'ethers/lib/utils';
 import { BigNumber } from 'ethers';
@@ -10,15 +10,14 @@ import { RATE_MULTIPLE } from '../constants';
 import { useAccount, useContractRead } from 'wagmi';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
 import { useTokenPrices } from '../hooks/use-token-prices';
+import { useInterestManagerAddress } from '../hooks/use-interest-manager-address';
+
+// sender: "0xcdccad1de51d4e2671e0930a0b7310042998c252"
+//         receiver: "0x86734dad0dc33fe712ec1179e60b09469e7fb83b"
 
 const GET_STREAMS = gql`
-  query GetStreams {
-    streams(
-      where: {
-        sender: "0xcdccad1de51d4e2671e0930a0b7310042998c252"
-        receiver: "0x86734dad0dc33fe712ec1179e60b09469e7fb83b"
-      }
-    ) {
+  query GetStreams($sender: ID!, $receiver: ID!) {
+    streams(where: { sender: $sender, receiver: $receiver }) {
       token {
         id
         symbol
@@ -37,8 +36,6 @@ const decimals = 2;
 export const Sidebar = () => {
   const currentDashboard = useCurrentDashboard();
 
-  const { address } = useAccount();
-
   if (!currentDashboard) {
     return null;
   }
@@ -52,7 +49,20 @@ export const Sidebar = () => {
 
 const BorrowerSidebar = () => {
   const currentDashboard = useCurrentDashboard();
-  const { loading, error, data: getStreamsResult } = useQuery(GET_STREAMS);
+  const { address } = useAccount();
+  const { contractAddress: interestMaanagerAddress } =
+    useInterestManagerAddress();
+  const {
+    loading,
+    error,
+    data: getStreamsResult,
+  } = useQuery(GET_STREAMS, {
+    variables: {
+      sender: address?.toLowerCase() ?? '', // LOWERCASE FOR SOME REASON LMAO
+      receiver: interestMaanagerAddress,
+    },
+  });
+
   const [totalStreamed, setTotalStreamed] = useState(0);
   const [flowRate, setFlowRate] = useState(0);
   const [collateralRatio, setCollateralRatio] = useState('');
@@ -64,7 +74,6 @@ const BorrowerSidebar = () => {
     }
   }, [loading]);
 
-  const { address } = useAccount();
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
   const {
@@ -79,9 +88,10 @@ const BorrowerSidebar = () => {
   });
   const { collateralTokenPrice, debtTokenPrice, granularity } =
     useTokenPrices();
-  const currentCollateralAmount =
-    borrowerProfile?.collateralAmount as any as BigNumber;
-  const currentBorrowAmount = borrowerProfile?.debtAmount as any as BigNumber;
+  const currentCollateralAmount = (borrowerProfile?.collateralAmount ??
+    BigNumber.from(0)) as any as BigNumber;
+  const currentBorrowAmount = (borrowerProfile?.debtAmount ??
+    BigNumber.from(0)) as any as BigNumber;
 
   useEffect(() => {
     if (isFetchingBorrowerProfiles === false) {
@@ -90,13 +100,21 @@ const BorrowerSidebar = () => {
   }, [isFetchingBorrowerProfiles]);
 
   const getActiveStream = () => {
-    if (getStreamsResult === undefined) return {};
+    const emptyStream = {
+      createdAtTimestamp: '0',
+      currentFlowRate: '0',
+      streamedUntilUpdatedAt: '0',
+      updatedAtTimestamp: '0',
+    };
+    if (getStreamsResult === undefined) return emptyStream;
 
-    const activeStream = getStreamsResult.streams.filter(
+    const activeStreams = getStreamsResult.streams.filter(
       (stream: any) => Number(stream.currentFlowRate) > 0
-    )[0];
+    );
 
-    return activeStream;
+    if (activeStreams.length > 0) return activeStreams[0];
+
+    return emptyStream;
   };
 
   const getFlowRate = () => {

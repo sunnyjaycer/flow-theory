@@ -29,6 +29,7 @@ export const DepositDialog = ({
     contractInterface: abi,
     functionName: 'depositLiquidity(uint256)',
     args: [formattedDepositAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmDeposit } = useContractWrite(config);
   const [isLoading, setIsLoading] = useState(false);

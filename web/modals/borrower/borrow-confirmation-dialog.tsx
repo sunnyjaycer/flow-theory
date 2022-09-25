@@ -35,8 +35,10 @@ const useSfPermissions = () => {
 
   useEffect(() => {
     const func = async () => {
+      if (!owner) return;
+
       const sf = await Framework.create({
-        chainId: chain?.id ?? 1,
+        chainId: chain?.id ?? provider.network.chainId,
         provider: provider,
       });
 

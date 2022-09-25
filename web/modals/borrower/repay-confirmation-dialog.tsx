@@ -31,6 +31,7 @@ export const RepayConfirmationDialog = ({
     contractInterface: lendingCoreAbi,
     functionName: 'repay',
     args: [parsedRepayAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmRepay } = useContractWrite(config);
   const { loading: confirmRepayLoading, callWithWait: onClickConfirmRepay } =

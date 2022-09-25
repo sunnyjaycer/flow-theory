@@ -34,6 +34,7 @@ export const WithdrawConfirmationDialog = ({
     contractInterface: lendingCoreAbi,
     functionName: 'withdrawCollateral(uint256)',
     args: [formattedWithdrawAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmWithdraw } = useContractWrite(config);
   const { collateralTokenPrice, granularity } = useTokenPrices();

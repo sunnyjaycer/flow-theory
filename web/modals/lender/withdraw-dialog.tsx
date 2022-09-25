@@ -1,3 +1,4 @@
+import { BigNumber } from 'ethers';
 import { formatEther, parseEther } from 'ethers/lib/utils';
 import { Dispatch, SetStateAction, useState } from 'react';
 import { usePrepareContractWrite, useContractWrite } from 'wagmi';
@@ -17,7 +18,7 @@ export const WithdrawDialog = ({
 }: {
   withdrawAmount: string;
   setWithdrawAmount: Dispatch<SetStateAction<string>>;
-  maxWithdrawAmount: number;
+  maxWithdrawAmount: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -25,13 +26,14 @@ export const WithdrawDialog = ({
   const formattedWithdrawAmount = parseEther(
     withdrawAmount === '' ? '0' : withdrawAmount
   );
-  const formattedMaxWithdrawAmount = formatEther(maxWithdrawAmount.toString());
+  const formattedMaxWithdrawAmount = formatEther(maxWithdrawAmount);
   const { contractAddress, abi } = useLendingCoreAddress();
   const { config, error } = usePrepareContractWrite({
     addressOrName: contractAddress,
     contractInterface: abi,
     functionName: 'withdrawLiquidity(uint256)',
     args: [formattedWithdrawAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmWIthdraw } = useContractWrite(config);
   const [isLoading, setIsLoading] = useState(false);

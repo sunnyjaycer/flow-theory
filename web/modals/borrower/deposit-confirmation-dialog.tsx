@@ -34,6 +34,7 @@ export const DepositConfirmationDialog = ({
     contractInterface: lendingCoreAbi,
     functionName: 'depositCollateral(uint256)',
     args: [formattedDepositAmount],
+    enabled: showDialog,
   });
   const { writeAsync: confirmDeposit } = useContractWrite(config);
   const { collateralTokenPrice, granularity } = useTokenPrices();

@@ -13,6 +13,8 @@ export const useTokenPrices = () => {
     addressOrName: lendingCoreAddress,
     contractInterface: lendingCoreAbi,
     functionName: 'collateralTokenPrice',
+    enabled:
+      lendingCoreAddress !== '0x0000000000000000000000000000000000000000',
   });
 
   const { data: debtTokenPrice, isFetching: isFetchingDebtTokenPrice } =
@@ -20,6 +22,8 @@ export const useTokenPrices = () => {
       addressOrName: lendingCoreAddress,
       contractInterface: lendingCoreAbi,
       functionName: 'debtTokenPrice',
+      enabled:
+        lendingCoreAddress !== '0x0000000000000000000000000000000000000000',
     });
 
   const { data: granularity, isFetching: isFetchingGranularity } =
@@ -27,6 +31,8 @@ export const useTokenPrices = () => {
       addressOrName: lendingCoreAddress,
       contractInterface: lendingCoreAbi,
       functionName: 'GRANULARITY',
+      enabled:
+        lendingCoreAddress !== '0x0000000000000000000000000000000000000000',
     });
 
   const loading =
@@ -42,8 +48,9 @@ export const useTokenPrices = () => {
   }
 
   return {
-    collateralTokenPrice: collateralTokenPrice as any as BigNumber,
-    debtTokenPrice: debtTokenPrice as any as BigNumber,
-    granularity: granularity as any as BigNumber,
+    collateralTokenPrice: (collateralTokenPrice ??
+      BigNumber.from(0)) as any as BigNumber,
+    debtTokenPrice: (debtTokenPrice ?? BigNumber.from(0)) as any as BigNumber,
+    granularity: (granularity ?? BigNumber.from(1)) as any as BigNumber,
   };
 };

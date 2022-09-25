@@ -70,10 +70,12 @@ const Borrower = () => {
     contractInterface: lendingCoreAbi,
     functionName: 'borrowerProfiles',
     args: [address],
+    enabled: address !== undefined,
   });
-  const currentCollateralAmount =
-    borrowerProfile?.collateralAmount as any as BigNumber;
-  const currentBorrowAmount = borrowerProfile?.debtAmount as any as BigNumber;
+  const currentCollateralAmount = (borrowerProfile?.collateralAmount ??
+    BigNumber.from(0)) as any as BigNumber;
+  const currentBorrowAmount = (borrowerProfile?.debtAmount ??
+    BigNumber.from(0)) as any as BigNumber;
 
   const { collateralTokenPrice, debtTokenPrice, granularity } =
     useTokenPrices();
@@ -218,6 +220,7 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
     contractInterface: wethAbi,
     functionName: 'allowance',
     args: [owner, lendingCoreAddress],
+    enabled: owner !== undefined,
   });
   const allowance = Number(data?.toString());
 

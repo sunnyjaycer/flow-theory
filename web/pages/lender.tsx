@@ -12,7 +12,7 @@ import {
   usePrepareContractWrite,
 } from 'wagmi';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
-import { ethers } from 'ethers';
+import { BigNumber, ethers } from 'ethers';
 import { TableHeader } from '../components/table-header';
 import Image from 'next/image';
 import { DECIMALS } from '../constants';
@@ -49,6 +49,7 @@ const Lender = () => {
     contractInterface: lendingCoreAbi,
     functionName: 'lenderProfiles',
     args: [owner],
+    enabled: owner !== undefined,
   });
 
   const exitDialog = () => {
@@ -60,18 +61,18 @@ const Lender = () => {
 
   // TODO: This needs to come from contract
   const interestGained = 10;
-
-  if (owner === undefined) return null;
+  console.log('fetchingAllowance', fetchingAllowance);
 
   if (fetchingAllowance) {
     return <Loading />;
   }
 
-  const currentLendAmount = Number(lenderProfile?.toString());
+  const currentLendAmount = (lenderProfile ??
+    BigNumber.from(0)) as any as BigNumber;
 
   return (
     <>
-      {currentLendAmount === 0 ? (
+      {currentLendAmount.eq(0) ? (
         <NoLends
           openDialog={() => {
             setCurrentDialog('depositDialog');
@@ -127,6 +128,7 @@ const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
     contractInterface: usdcxAbi,
     functionName: 'allowance',
     args: [owner, lendingCoreAddress],
+    enabled: owner !== undefined,
   });
   const allowance = Number(data?.toString());
 
@@ -184,11 +186,11 @@ const LendsTable = ({
   openDepositDialog,
   openWithdrawDialog,
 }: {
-  currentLendAmount: number;
+  currentLendAmount: BigNumber;
   openDepositDialog: VoidFunction;
   openWithdrawDialog: VoidFunction;
 }) => {
-  const parsedLendAmount = formatEther(currentLendAmount.toString());
+  const parsedLendAmount = formatEther(currentLendAmount);
 
   return (
     <div className="mx-8">
