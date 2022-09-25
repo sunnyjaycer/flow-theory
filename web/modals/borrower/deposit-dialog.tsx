@@ -33,7 +33,7 @@ export const DepositDialog = ({
               value={depositAmount}
               label="Amount"
               onChange={setDepositAmount}
-              icon={'/usdc-logo.png'}
+              icon={'/weth-logo.png'}
               className="mb-4"
             />
           </DialogColumn>

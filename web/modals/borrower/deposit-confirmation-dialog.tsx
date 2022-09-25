@@ -24,10 +24,11 @@ export const DepositConfirmationDialog = ({
   closeDialog: VoidFunction;
   onBack: VoidFunction;
 }) => {
-  const lendingCoreAddress = useLendingCoreAddress();
+  const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
+    useLendingCoreAddress();
   const { config, error } = usePrepareContractWrite({
     addressOrName: lendingCoreAddress,
-    contractInterface: LendingCore.abi,
+    contractInterface: lendingCoreAbi,
     functionName: 'depositCollateral(uint256)',
     args: [depositAmount],
   });

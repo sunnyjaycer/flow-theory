@@ -22,6 +22,8 @@ import { MinusIcon } from '../svg/minux-icon';
 import { WithdrawDialog } from '../modals/lender/withdraw-dialog';
 import { Loading } from '../components/loading';
 import { WithdrawConfirmationDialog } from '../modals/lender/withdraw-confirmation-dialog';
+import { useUsdcxAddress } from '../hooks/use-usdcx-address';
+import { useWriteWithWait } from '../hooks/use-write-with-wait';
 
 type CurrentDialog =
   | 'depositDialog'
@@ -111,16 +113,16 @@ const Lender = () => {
 };
 
 const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
-  const usdcx = '0x8aE68021f6170E5a766bE613cEA0d75236ECCa9a'; // Goerly USDCX,
   const { address: owner } = useAccount();
   const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
+  const { contractAddress: usdcxAddress, abi: usdcxAbi } = useUsdcxAddress();
   const {
     data,
     isLoading: loadingAllowance,
     refetch,
   } = useContractRead({
-    addressOrName: usdcx,
-    contractInterface: ERC20.abi,
+    addressOrName: usdcxAddress,
+    contractInterface: usdcxAbi,
     functionName: 'allowance',
     args: [owner, lendingCoreAddress],
   });
@@ -128,8 +130,8 @@ const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
 
   const { config: configIncreaseAllowance, isLoading: loadingApproval } =
     usePrepareContractWrite({
-      addressOrName: usdcx,
-      contractInterface: ERC20.abi,
+      addressOrName: usdcxAddress,
+      contractInterface: usdcxAbi,
       functionName: 'approve',
       args: [lendingCoreAddress, ethers.constants.MaxUint256],
     });
@@ -137,29 +139,13 @@ const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
     configIncreaseAllowance
   );
 
-  const [loadingIncreaseAllowance, setLoadingIncreaseAllowance] =
-    useState(false);
-
-  const onClickIncreaseAllowance = async () => {
-    try {
-      setLoadingIncreaseAllowance(true);
-
-      const tx = await increaseAllowance?.();
-      if (tx === undefined) {
-        setLoadingIncreaseAllowance(false);
-        return;
-      }
-
-      await tx.wait();
-      await refetch();
-      setLoadingIncreaseAllowance(false);
-    } catch (error) {
-      setLoadingIncreaseAllowance(false);
-    }
-  };
+  const {
+    callWithWait: onClickIncreaseAllowance,
+    loading: loadingIncreaseAllowance,
+  } = useWriteWithWait(increaseAllowance, refetch);
 
   if (loadingAllowance || loadingAllowance || increaseAllowance === undefined) {
-    return null;
+    return <Loading />;
   }
 
   return (

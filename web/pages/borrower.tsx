@@ -4,7 +4,12 @@ import { PlusIcon } from '../svg/plus-icon';
 import Image from 'next/image';
 import { SecondaryButton } from '../components/secondary-button';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
-import { useContractRead, useAccount } from 'wagmi';
+import {
+  useContractRead,
+  useAccount,
+  usePrepareContractWrite,
+  useContractWrite,
+} from 'wagmi';
 import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
 import { MinusIcon } from '../svg/minux-icon';
 import { RepayIcon } from '../svg/repay-icon';
@@ -19,6 +24,11 @@ import { RepayDialog } from '../modals/borrower/repay-dialog';
 import { RepayConfirmationDialog } from '../modals/borrower/repay-confirmation-dialog';
 import { FancyDottedBox } from '../components/fancy-dotted-box';
 import { TableHeader } from '../components/table-header';
+import { Loading } from '../components/loading';
+import { useTokenPrices } from '../hooks/use-token-prices';
+import { useWethAddress } from '../hooks/use-weth-address';
+import { ethers } from 'ethers';
+import { useWriteWithWait } from '../hooks/use-write-with-wait';
 
 type CurrentDialog =
   | 'borrowDialog'
@@ -54,16 +64,19 @@ const Borrower = () => {
   };
 
   const { address } = useAccount();
-  const lendingCoreAddress = useLendingCoreAddress();
-  const { data, isError, isLoading } = useContractRead({
-    addressOrName: lendingCoreAddress,
-    contractInterface: LendingCore.abi,
-    functionName: 'borrowerProfiles(address)',
-    args: [address],
-  });
-  const currentCollateralAmount = data?.collateralAmount.toNumber();
-  // const currentBorrowAmount = data?.debtAmount.toNumber();
-  const currentBorrowAmount = 0;
+  const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
+    useLendingCoreAddress();
+  const { data: borrowerProfile, isFetching: isFetchingBorrowerProfiles } =
+    useContractRead({
+      addressOrName: lendingCoreAddress,
+      contractInterface: lendingCoreAbi,
+      functionName: 'borrowerProfiles',
+      args: [address],
+    });
+  const currentCollateralAmount = borrowerProfile?.collateralAmount.toNumber();
+  const currentBorrowAmount = borrowerProfile?.debtAmount.toNumber();
+
+  const { collateralTokenPrice, debtTokenPrice } = useTokenPrices();
 
   // TODO: These should come from subgraph
   const interestRate = 0.01;
@@ -79,7 +92,10 @@ const Borrower = () => {
       return;
     }
 
-    return totalCollateralAmount / totalBorrowAmount;
+    return (
+      (totalCollateralAmount * collateralTokenPrice) /
+      (totalBorrowAmount * debtTokenPrice)
+    );
   };
 
   const getNewInterest = () => {
@@ -89,11 +105,14 @@ const Borrower = () => {
   const newCollateralRatio = getNewCollateralRatio();
   const newInterest = getNewInterest();
 
+  if (isFetchingBorrowerProfiles) {
+    return <Loading />;
+  }
+
   return (
     <>
-      {/* {currentBorrowAmount === 0 || isLoading ? ( */}
       {currentBorrowAmount === 0 ? (
-        <NoBorrows openDialog={() => setCurrentDialog('borrowDialog')} />
+        <NoBorrows openDialog={() => setCurrentDialog('depositDialog')} />
       ) : (
         <BorrowsTable
           openDepositDialog={() => setCurrentDialog('depositDialog')}
@@ -178,18 +197,66 @@ const Borrower = () => {
 };
 
 const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
+  const { address: owner } = useAccount();
+  const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
+  const { contractAddress: wethAddress, abi: wethAbi } = useWethAddress();
+  const {
+    data,
+    isLoading: loadingAllowance,
+    refetch,
+  } = useContractRead({
+    addressOrName: wethAddress,
+    contractInterface: wethAbi,
+    functionName: 'allowance',
+    args: [owner, lendingCoreAddress],
+  });
+  const allowance = Number(data?.toString());
+  console.log('allowance', allowance);
+
+  const { config: configIncreaseAllowance, isLoading: loadingApproval } =
+    usePrepareContractWrite({
+      addressOrName: wethAddress,
+      contractInterface: wethAbi,
+      functionName: 'approve',
+      args: [lendingCoreAddress, ethers.constants.MaxUint256],
+    });
+  const { writeAsync: increaseAllowance } = useContractWrite(
+    configIncreaseAllowance
+  );
+
+  const {
+    callWithWait: onClickIncreaseAllowance,
+    loading: loadingIncreaseAllowance,
+  } = useWriteWithWait(increaseAllowance, refetch);
+
+  if (loadingAllowance || loadingAllowance || increaseAllowance === undefined) {
+    return <Loading />;
+  }
+
   return (
     <FancyDottedBox>
       <div className="h-full flex gap-4 items-center">
         <p className="text-gray-400">No Borrows</p>
-        <PrimaryButton onClick={openDialog}>
-          <div className="flex items-center gap-2">
-            <div className="mb-1">
-              <PlusIcon />
+        {allowance === 0 ? (
+          <PrimaryButton
+            onClick={onClickIncreaseAllowance}
+            isLoading={loadingIncreaseAllowance}
+            disabled={loadingIncreaseAllowance}
+          >
+            <div className="flex items-center gap-2">
+              Allow spending of WETH
             </div>
-            Deposit Collateral
-          </div>
-        </PrimaryButton>
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton onClick={openDialog}>
+            <div className="flex items-center gap-2">
+              <div className="mb-1">
+                <PlusIcon />
+              </div>
+              Deposit Collateral
+            </div>
+          </PrimaryButton>
+        )}
       </div>
     </FancyDottedBox>
   );
