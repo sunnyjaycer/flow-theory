@@ -108,6 +108,7 @@ const BorrowerSidebar = () => {
     };
     if (getStreamsResult === undefined) return emptyStream;
 
+    console.log('stream result', getStreamsResult);
     const activeStreams = getStreamsResult.streams.filter(
       (stream: any) => Number(stream.currentFlowRate) > 0
     );

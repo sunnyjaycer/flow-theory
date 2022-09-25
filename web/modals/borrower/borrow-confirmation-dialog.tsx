@@ -32,6 +32,7 @@ const useSfPermissions = () => {
   const { contractAddress: usdcxAddress } = useUsdcxAddress();
   const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
   const [operatorData, setOperatorData] = useState<IWeb3FlowOperatorData>();
+  const [grantedPermissions, setGrantedPermissions] = useState(false);
 
   useEffect(() => {
     const func = async () => {
@@ -51,7 +52,7 @@ const useSfPermissions = () => {
       setOperatorData(data);
     };
     func();
-  }, []);
+  }, [grantedPermissions]);
 
   const grantSfPermissions = async () => {
     if (signer == null) return;
@@ -67,6 +68,7 @@ const useSfPermissions = () => {
     });
     const exec = await tx.exec(signer);
     await exec.wait();
+    setGrantedPermissions(true);
   };
 
   return { operatorData, grantSfPermissions };
