@@ -109,7 +109,7 @@ const Borrower = () => {
     .sub(parseEther(stringNumberOrZero(withdrawAmount)));
 
   const getNewCollateralRatio = () => {
-    if (totalBorrowAmount.lte(0)) {
+    if (totalBorrowAmount.mul(debtTokenPrice).lte(0)) {
       // Guard against divide by 0
       return;
     }
@@ -164,7 +164,7 @@ const Borrower = () => {
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('borrowDialog')}
       />
-      {/* <DepositDialog
+      <DepositDialog
         depositAmount={depositAmount}
         setDepositAmount={setDepositAmount}
         newCollateralRatio={newCollateralRatio}
@@ -179,20 +179,16 @@ const Borrower = () => {
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('depositDialog')}
       />
+
       <WithdrawDialog
         withdrawAmount={withdrawAmount}
         setWithdrawAmount={setWithdrawAmount}
-        repayAmount={repayAmount}
-        setRepayAmount={setRepayAmount}
-        newCollateralRatio={newCollateralRatio}
-        newInterest={newInterest}
         showDialog={currentDialog === 'withdrawDialog'}
         closeDialog={exitDialog}
         onApprove={() => setCurrentDialog('withdrawConfirmationDialog')}
       />
       <WithdrawConfirmationDialog
         withdrawAmount={withdrawAmount}
-        repayAmount={repayAmount}
         interestPaid={interestPaid}
         showDialog={currentDialog === 'withdrawConfirmationDialog'}
         closeDialog={exitDialog}
@@ -213,7 +209,7 @@ const Borrower = () => {
         showDialog={currentDialog === 'repayConfirmationDialog'}
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('repayDialog')}
-      /> */}
+      />
     </>
   );
 };

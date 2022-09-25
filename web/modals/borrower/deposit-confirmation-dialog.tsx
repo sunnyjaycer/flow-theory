@@ -18,12 +18,14 @@ export const DepositConfirmationDialog = ({
   onBack,
 }: {
   collateralRatio: BigNumber;
-  depositAmount: BigNumber;
+  depositAmount: string;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onBack: VoidFunction;
 }) => {
-  const formattedDepositAmount = parseEther(depositAmount.toString());
+  const formattedDepositAmount = parseEther(
+    depositAmount === '' ? '0' : depositAmount
+  );
 
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
@@ -36,7 +38,7 @@ export const DepositConfirmationDialog = ({
   const { writeAsync: confirmDeposit } = useContractWrite(config);
   const { collateralTokenPrice, granularity } = useTokenPrices();
   const depositDollarAmount = collateralTokenPrice
-    .mul(depositAmount)
+    .mul(BigNumber.from(depositAmount === '' ? '0' : depositAmount))
     .div(granularity);
 
   const {

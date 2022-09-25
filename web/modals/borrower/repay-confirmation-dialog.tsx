@@ -14,7 +14,7 @@ export const RepayConfirmationDialog = ({
   closeDialog,
   onBack,
 }: {
-  repayAmount: BigNumber;
+  repayAmount: string;
   interestPaid: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;

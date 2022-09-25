@@ -1,6 +1,5 @@
 import { Dialog } from '../../components/dialog';
 import { Dispatch, SetStateAction } from 'react';
-import { DECIMALS } from '../../constants';
 import { PrimaryButton } from '../../components/primary-button';
 import { DialogColumn } from '../../components/dialog-column';
 import { DialogInput } from '../../components/dialog-input';
@@ -14,8 +13,8 @@ export const DepositDialog = ({
   closeDialog,
   onApprove,
 }: {
-  depositAmount: BigNumber;
-  setDepositAmount: Dispatch<SetStateAction<BigNumber>>;
+  depositAmount: string;
+  setDepositAmount: Dispatch<SetStateAction<string>>;
   newCollateralRatio?: BigNumber;
   showDialog: boolean;
   closeDialog: VoidFunction;

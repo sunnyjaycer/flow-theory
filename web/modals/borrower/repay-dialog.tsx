@@ -5,8 +5,6 @@ import { DialogColumn } from '../../components/dialog-column';
 import { DialogInput } from '../../components/dialog-input';
 import { GradientText } from '../../components/gradient-text';
 import { PrimaryButton } from '../../components/primary-button';
-import { DECIMALS } from '../../constants';
-import { onChangeNumberAmount } from '../../helpers/number-helpers';
 
 export const RepayDialog = ({
   repayAmount,
@@ -17,10 +15,10 @@ export const RepayDialog = ({
   closeDialog,
   onApprove,
 }: {
-  repayAmount: BigNumber;
-  setRepayAmount: Dispatch<SetStateAction<BigNumber>>;
+  repayAmount: string;
+  setRepayAmount: Dispatch<SetStateAction<string>>;
   newCollateralRatio?: BigNumber;
-  newInterest: BigNumber;
+  newInterest: string;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -60,7 +58,7 @@ export const RepayDialog = ({
         </GradientText>
         <div className="mb-4">
           <span className="font-bold">New Interest: </span>
-          <span>{newInterest.toString()}</span>
+          <span>{newInterest}</span>
         </div>
         <div>
           <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>
