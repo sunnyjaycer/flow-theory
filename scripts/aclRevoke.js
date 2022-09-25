@@ -16,8 +16,6 @@ async function main() {
 
   [alice, bob, admin] = await ethers.getSigners();
 
-  console.log('Alice: ', alice.address);
-
   const provider = new hre.ethers.providers.JsonRpcProvider(
     config.networks.goerli.url
   );
