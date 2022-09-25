@@ -1,4 +1,11 @@
-import { usePrepareContractWrite, useContractWrite } from 'wagmi';
+import {
+  usePrepareContractWrite,
+  useContractWrite,
+  useNetwork,
+  useProvider,
+  useAccount,
+  useSigner,
+} from 'wagmi';
 import { GradientText } from '../../components/gradient-text';
 import { PrimaryButton } from '../../components/primary-button';
 import { SecondaryButton } from '../../components/secondary-button';
@@ -10,6 +17,58 @@ import Image from 'next/image';
 import { wethToUSD } from '../../helpers/conversion';
 import { DialogColumn } from '../../components/dialog-column';
 import { BigNumber } from 'ethers';
+import { parseEther } from 'ethers/lib/utils';
+import { useWriteWithWait } from '../../hooks/use-write-with-wait';
+import { Framework, IWeb3FlowOperatorData } from '@superfluid-finance/sdk-core';
+import { useEffect, useState } from 'react';
+import { useUsdcxAddress } from '../../hooks/use-usdcx-address';
+
+const useSfPermissions = () => {
+  const { chain } = useNetwork();
+  const provider = useProvider();
+
+  const { address: owner } = useAccount();
+  const { data: signer } = useSigner();
+  const { contractAddress: usdcxAddress } = useUsdcxAddress();
+  const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
+  const [operatorData, setOperatorData] = useState<IWeb3FlowOperatorData>();
+
+  useEffect(() => {
+    const func = async () => {
+      const sf = await Framework.create({
+        chainId: chain?.id ?? 1,
+        provider: provider,
+      });
+
+      let data = await sf.cfaV1.getFlowOperatorData({
+        sender: owner ?? '',
+        superToken: usdcxAddress,
+        flowOperator: lendingCoreAddress,
+        providerOrSigner: provider,
+      });
+      setOperatorData(data);
+    };
+    func();
+  }, []);
+
+  const grantSfPermissions = async () => {
+    if (signer == null) return;
+
+    const sf = await Framework.create({
+      chainId: chain?.id ?? 1,
+      provider: provider,
+    });
+
+    const tx = await sf.cfaV1.authorizeFlowOperatorWithFullControl({
+      superToken: usdcxAddress,
+      flowOperator: lendingCoreAddress,
+    });
+    const exec = await tx.exec(signer);
+    await exec.wait();
+  };
+
+  return { operatorData, grantSfPermissions };
+};
 
 export const BorrowConfirmationDialog = ({
   collateralAmount,
@@ -20,25 +79,45 @@ export const BorrowConfirmationDialog = ({
   closeDialog,
   onBack,
 }: {
-  collateralAmount: BigNumber;
-  borrowAmount: BigNumber;
+  collateralAmount: string;
+  borrowAmount: string;
   collateralRatio: BigNumber;
-  interest: BigNumber;
+  interest: string;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onBack: VoidFunction;
 }) => {
-  const borrowAmountInUSD = wethToUSD(borrowAmount);
+  const parsedBorrowAmount = parseEther(
+    borrowAmount === '' ? '0' : borrowAmount
+  );
+  console.log('parsedBorrowAmount', parsedBorrowAmount.toString());
+  const { operatorData, grantSfPermissions } = useSfPermissions();
 
-  // const lendingCoreAddress = useLendingCoreAddress();
-  // console.log('lendingCoreAddress', lendingCoreAddress);
-  // const { config, error } = usePrepareContractWrite({
-  //   addressOrName: lendingCoreAddress,
-  //   contractInterface: LendingCore.abi,
-  //   functionName: 'borrow(uint256)',
-  //   args: [borrowAmount],
-  // });
-  // const { write: confirmBorrow } = useContractWrite(config);
+  const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
+    useLendingCoreAddress();
+  const { config, error } = usePrepareContractWrite({
+    addressOrName: lendingCoreAddress,
+    contractInterface: lendingCoreAbi,
+    functionName: 'borrow',
+    args: [parsedBorrowAmount],
+  });
+  const { writeAsync: confirmBorrow } = useContractWrite(config);
+  const { loading: confirmBorrowLoading, callWithWait: onClickConfirmBorrow } =
+    useWriteWithWait(confirmBorrow, async () => closeDialog());
+
+  const sufficientPermissions = operatorData?.permissions === '7';
+
+  const [grantingSfPermissions, setGrantingSfPermissions] = useState(false);
+  const onClickAllowFlow = async () => {
+    try {
+      setGrantingSfPermissions(true);
+      await grantSfPermissions();
+      setGrantingSfPermissions(false);
+    } catch (error) {
+      console.error(error);
+      setGrantingSfPermissions(false);
+    }
+  };
 
   return (
     <Dialog
@@ -46,35 +125,12 @@ export const BorrowConfirmationDialog = ({
       onDismiss={closeDialog}
       aria-label="Borrow confirmation Overlay"
     >
-      <div className="flex gap-4 mb-4">
-        <div className="flex-1 text-left">
-          <DialogColumn title="Collateral">
-            <Image
-              src="/usdc-logo.png"
-              width={50}
-              height={50}
-              alt="USDC Logo"
-            />
-            <p className="font-bold text-brand-blue text-3xl">
-              {collateralAmount.toString()}
-            </p>
-            {/* Assuming the collateral amount is always USDC for now */}
-            <p className="font-thin text-blue--3">
-              ${collateralAmount.toString()}
-            </p>
-          </DialogColumn>
-        </div>
-
-        <div className="flex-1 text-left">
-          <h2 className="text-2xl font-thin mb-4">Borrow</h2>
-          <Image src="/weth-logo.png" width={50} height={50} alt="USDC Logo" />
-          <p className="font-bold text-brand-blue text-3xl">
-            {borrowAmount.toString()}
-          </p>
-          <p className="font-thin text-blue--3">
-            ${borrowAmountInUSD.toString()}
-          </p>
-        </div>
+      <div className="mb-4 text-left">
+        <DialogColumn title="Borrow">
+          <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
+          <p className="font-bold text-brand-blue text-3xl">{borrowAmount}</p>
+          <p className="font-thin text-blue--3">${borrowAmount}</p>
+        </DialogColumn>
       </div>
 
       <div className="text-left mb-4">
@@ -89,15 +145,23 @@ export const BorrowConfirmationDialog = ({
 
       <div className="flex justify-between">
         <SecondaryButton onClick={onBack}>Back</SecondaryButton>
-        <PrimaryButton
-          onClick={() => {
-            console.log('Calling confirmBorrow');
-            // console.log('confirmBorrow', confirmBorrow);
-            // confirmBorrow?.();
-          }}
-        >
-          Confirm
-        </PrimaryButton>
+        {!sufficientPermissions ? (
+          <PrimaryButton
+            onClick={onClickAllowFlow}
+            isLoading={grantingSfPermissions}
+            disabled={grantingSfPermissions}
+          >
+            Allow Flow
+          </PrimaryButton>
+        ) : (
+          <PrimaryButton
+            onClick={onClickConfirmBorrow}
+            isLoading={confirmBorrowLoading}
+            disabled={confirmBorrowLoading}
+          >
+            Confirm
+          </PrimaryButton>
+        )}
       </div>
     </Dialog>
   );

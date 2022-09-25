@@ -1,12 +1,9 @@
 import { Dialog } from '../../components/dialog';
 import Image from 'next/image';
-import { GradientText } from '../../components/gradient-text';
 import { PrimaryButton } from '../../components/primary-button';
 import { SecondaryButton } from '../../components/secondary-button';
-import { DECIMALS } from '../../constants';
 import { usePrepareContractWrite, useContractWrite } from 'wagmi';
 import { useLendingCoreAddress } from '../../hooks/use-lending-core-address';
-import LendingCore from '../../../artifacts/contracts/LendingCore.sol/LendingCore.json';
 import { DialogColumn } from '../../components/dialog-column';
 import { useTokenPrices } from '../../hooks/use-token-prices';
 import { useWriteWithWait } from '../../hooks/use-write-with-wait';

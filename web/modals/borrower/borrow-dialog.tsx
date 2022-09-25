@@ -10,8 +10,6 @@ import { DECIMALS } from '../../constants';
 import { onChangeNumberAmount } from '../../helpers/number-helpers';
 
 export const BorrowDialog = ({
-  collateralAmount,
-  setCollateralAmount,
   borrowAmount,
   setBorrowAmount,
   newCollateralRatio,
@@ -20,12 +18,10 @@ export const BorrowDialog = ({
   closeDialog,
   onApprove,
 }: {
-  collateralAmount: BigNumber;
-  setCollateralAmount: Dispatch<SetStateAction<BigNumber>>;
-  borrowAmount: BigNumber;
-  setBorrowAmount: Dispatch<SetStateAction<BigNumber>>;
+  borrowAmount: string;
+  setBorrowAmount: Dispatch<SetStateAction<string>>;
   newCollateralRatio?: BigNumber;
-  newInterest: BigNumber;
+  newInterest: string;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
@@ -36,48 +32,33 @@ export const BorrowDialog = ({
       onDismiss={closeDialog}
       aria-label="Borrow Overlay"
     >
-      <div className="flex gap-4">
-        <div className="flex-1 text-left">
-          <DialogColumn title="Add Collateral">
-            <DialogInput
-              value={collateralAmount.toString()}
-              label="Amount"
-              onChange={setCollateralAmount}
-              icon={'/weth-logo.png'}
-              className="mb-4"
-            />
-
-            <p className="font-thin text-blue--3">Only deposit WETH</p>
-          </DialogColumn>
+      <div className="text-left">
+        <DialogColumn title="Borrow">
+          <DialogInput
+            value={borrowAmount}
+            label="Amount"
+            onChange={setBorrowAmount}
+            icon={'/usdc-logo.png'}
+            className="mb-4"
+          />
+        </DialogColumn>
+        <div className="mb-4">
+          <span className="font-bold">New Collateral Ratio: </span>
+          <span>
+            {newCollateralRatio === undefined
+              ? '--:--'
+              : newCollateralRatio.toString()}{' '}
+          </span>
         </div>
-        <div className="flex-1 text-left">
-          <DialogColumn title="Borrow">
-            <DialogInput
-              value={borrowAmount.toString()}
-              label="Amount"
-              onChange={setBorrowAmount}
-              icon={'/usdc-logo.png'}
-              className="mb-4"
-            />
-          </DialogColumn>
-          <div className="mb-4">
-            <span className="font-bold">New Collateral Ratio: </span>
-            <span>
-              {newCollateralRatio === undefined
-                ? '--:--'
-                : newCollateralRatio.toString()}{' '}
-            </span>
-          </div>
 
-          <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
+        <GradientText className="mb-4 font-bold">Fixed APR 1%</GradientText>
 
-          <div className="mb-4">
-            <span className="font-bold">New Interest: </span>
-            <span>{newInterest.toString()}/year</span>
-          </div>
-          <div className="text-right mt-4">
-            <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>
-          </div>
+        <div className="mb-4">
+          <span className="font-bold">New Interest: </span>
+          <span>{newInterest.toString()}/year</span>
+        </div>
+        <div className="text-right mt-4">
+          <PrimaryButton onClick={onApprove}>Approve</PrimaryButton>
         </div>
       </div>
     </Dialog>

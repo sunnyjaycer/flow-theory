@@ -29,6 +29,7 @@ import { useTokenPrices } from '../hooks/use-token-prices';
 import { useWethAddress } from '../hooks/use-weth-address';
 import { BigNumber, ethers, FixedNumber } from 'ethers';
 import { useWriteWithWait } from '../hooks/use-write-with-wait';
+import { formatEther, parseEther } from 'ethers/lib/utils';
 
 type CurrentDialog =
   | 'borrowDialog'
@@ -43,16 +44,20 @@ type CurrentDialog =
 
 const DECIMALS = 2;
 
+const stringNumberOrZero = (num: string) => {
+  if (num === '') {
+    return '0';
+  }
+  return num;
+};
+
 const Borrower = () => {
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
-  const onApproveDeposit = () => {
-    setCurrentDialog('borrowConfirmationDialog');
-  };
-  const [collateralAmount, setCollateralAmount] = useState(BigNumber.from(0));
-  const [borrowAmount, setBorrowAmount] = useState(BigNumber.from(0));
-  const [depositAmount, setDepositAmount] = useState(BigNumber.from(0));
-  const [withdrawAmount, setWithdrawAmount] = useState(BigNumber.from(0));
-  const [repayAmount, setRepayAmount] = useState(BigNumber.from(0));
+  const [collateralAmount, setCollateralAmount] = useState('');
+  const [borrowAmount, setBorrowAmount] = useState('');
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
+  const [repayAmount, setRepayAmount] = useState('');
 
   const { address } = useAccount();
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
@@ -76,11 +81,11 @@ const Borrower = () => {
 
   const exitDialog = () => {
     setCurrentDialog(undefined);
-    setCollateralAmount(BigNumber.from(0));
-    setBorrowAmount(BigNumber.from(0));
-    setDepositAmount(BigNumber.from(0));
-    setWithdrawAmount(BigNumber.from(0));
-    setRepayAmount(BigNumber.from(0));
+    setCollateralAmount('');
+    setBorrowAmount('');
+    setDepositAmount('');
+    setWithdrawAmount('');
+    setRepayAmount('');
 
     refetchBorrowerProfiles();
   };
@@ -93,13 +98,15 @@ const Borrower = () => {
   const interestRate = BigNumber.from(10);
   const interestPaid = BigNumber.from(10);
 
+  console.log('currentBorrowAmount', currentBorrowAmount.toString());
+
   const totalBorrowAmount = currentBorrowAmount
-    .add(borrowAmount)
-    .sub(repayAmount);
+    .add(parseEther(stringNumberOrZero(borrowAmount)))
+    .sub(parseEther(stringNumberOrZero(repayAmount)));
   const totalCollateralAmount = currentCollateralAmount
-    .add(collateralAmount)
-    .add(depositAmount)
-    .sub(withdrawAmount);
+    .add(parseEther(stringNumberOrZero(collateralAmount)))
+    .add(parseEther(stringNumberOrZero(depositAmount)))
+    .sub(parseEther(stringNumberOrZero(withdrawAmount)));
 
   const getNewCollateralRatio = () => {
     if (totalBorrowAmount.lte(0)) {
@@ -107,13 +114,19 @@ const Borrower = () => {
       return;
     }
 
+    console.log(
+      'totalCollateralAmount',
+      formatEther(totalCollateralAmount.toString())
+    );
+    console.log('totalBorrowAmount', formatEther(totalBorrowAmount.toString()));
+
     return totalCollateralAmount
       .mul(collateralTokenPrice)
       .div(totalBorrowAmount.mul(debtTokenPrice));
   };
 
   const getNewInterest = () => {
-    return totalBorrowAmount.mul(interestRate).div(granularity);
+    return formatEther(totalBorrowAmount.mul(interestRate).div(granularity));
   };
 
   const newCollateralRatio = getNewCollateralRatio();
@@ -125,6 +138,8 @@ const Borrower = () => {
         <NoBorrows openDialog={() => setCurrentDialog('depositDialog')} />
       ) : (
         <BorrowsTable
+          currentCollateralAmount={currentCollateralAmount}
+          currentBorrowAmount={currentBorrowAmount}
           openDepositDialog={() => setCurrentDialog('depositDialog')}
           openWithdrawDialog={() => setCurrentDialog('withdrawDialog')}
           openRepayDialog={() => setCurrentDialog('repayDialog')}
@@ -132,15 +147,13 @@ const Borrower = () => {
         />
       )}
       <BorrowDialog
-        collateralAmount={collateralAmount}
-        setCollateralAmount={setCollateralAmount}
         borrowAmount={borrowAmount}
         setBorrowAmount={setBorrowAmount}
         newCollateralRatio={newCollateralRatio}
         newInterest={newInterest}
         showDialog={currentDialog === 'borrowDialog'}
         closeDialog={exitDialog}
-        onApprove={onApproveDeposit}
+        onApprove={() => setCurrentDialog('borrowConfirmationDialog')}
       />
       <BorrowConfirmationDialog
         collateralAmount={collateralAmount}
@@ -151,7 +164,7 @@ const Borrower = () => {
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('borrowDialog')}
       />
-      <DepositDialog
+      {/* <DepositDialog
         depositAmount={depositAmount}
         setDepositAmount={setDepositAmount}
         newCollateralRatio={newCollateralRatio}
@@ -200,7 +213,7 @@ const Borrower = () => {
         showDialog={currentDialog === 'repayConfirmationDialog'}
         closeDialog={exitDialog}
         onBack={() => setCurrentDialog('repayDialog')}
-      />
+      /> */}
     </>
   );
 };
@@ -271,18 +284,22 @@ const NoBorrows = ({ openDialog }: { openDialog: VoidFunction }) => {
 };
 
 const BorrowsTable = ({
+  currentCollateralAmount,
+  currentBorrowAmount,
   openDepositDialog,
   openWithdrawDialog,
   openRepayDialog,
   openBorrowDialog,
 }: {
+  currentCollateralAmount: BigNumber;
+  currentBorrowAmount: BigNumber;
   openDepositDialog: VoidFunction;
   openWithdrawDialog: VoidFunction;
   openRepayDialog: VoidFunction;
   openBorrowDialog: VoidFunction;
 }) => {
-  const collateralAmount = 10;
-  const borrowedAmount = 10;
+  const collateralAmount = formatEther(currentCollateralAmount);
+  const borrowedAmount = formatEther(currentBorrowAmount);
 
   return (
     <div className="flex gap-4 mx-8">
@@ -290,7 +307,7 @@ const BorrowsTable = ({
         <TableHeader>Collateral</TableHeader>
         <div className="bg-blue-3 p-4 flex items-center gap-8">
           <Image src="/weth-logo.png" width={50} height={50} alt="" />
-          <p>{collateralAmount.toFixed(DECIMALS)}</p>
+          <p>{collateralAmount}</p>
           <div className="flex h-fit gap-8">
             <PrimaryButton onClick={openDepositDialog}>
               <div className="flex items-center gap-2">
@@ -311,7 +328,7 @@ const BorrowsTable = ({
         <TableHeader>Borrows</TableHeader>
         <div className="bg-blue-3 p-4 flex items-center gap-8">
           <Image src="/usdc-logo.png" width={50} height={50} alt="" />
-          <p>{borrowedAmount.toFixed(DECIMALS)}</p>
+          <p>{borrowedAmount}</p>
           <div className="flex h-fit gap-8">
             <PrimaryButton onClick={openRepayDialog}>
               <div className="flex items-center gap-2">
