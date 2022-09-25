@@ -10,7 +10,7 @@ export const DepositConfirmationDialog = ({
   showDialog,
   closeDialog,
 }: {
-  depositAmount: number;
+  depositAmount: string;
   showDialog: boolean;
   closeDialog: VoidFunction;
 }) => {
@@ -26,7 +26,7 @@ export const DepositConfirmationDialog = ({
             <Image src="/usdc-logo.png" width={50} height={50} alt="" />
           </div>
           <GradientText className="text-4xl font-bold mt-4">
-            {depositAmount.toFixed(DECIMALS)}
+            {depositAmount}
           </GradientText>
           <p className="font-thin text-blue--3 mb-4">${depositAmount}</p>
           <div className="font-bold text-lg flex gap-2 mb-4">

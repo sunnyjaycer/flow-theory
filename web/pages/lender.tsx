@@ -34,8 +34,8 @@ type CurrentDialog =
 
 const Lender = () => {
   const [currentDialog, setCurrentDialog] = useState<CurrentDialog>();
-  const [depositAmount, setDepositAmount] = useState(0);
-  const [withdrawAmount, setWithdrawAmount] = useState(0);
+  const [depositAmount, setDepositAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
 
   const { address: owner } = useAccount();
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
@@ -53,8 +53,8 @@ const Lender = () => {
 
   const exitDialog = () => {
     setCurrentDialog(undefined);
-    setDepositAmount(0);
-    setWithdrawAmount(0);
+    setDepositAmount('');
+    setWithdrawAmount('');
     refetchLenderProfiles();
   };
 

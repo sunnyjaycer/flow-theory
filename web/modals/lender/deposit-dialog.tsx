@@ -14,13 +14,15 @@ export const DepositDialog = ({
   closeDialog,
   onApprove,
 }: {
-  depositAmount: number;
-  setDepositAmount: Dispatch<SetStateAction<number>>;
+  depositAmount: string;
+  setDepositAmount: Dispatch<SetStateAction<string>>;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
 }) => {
-  const formattedDepositAmount = parseEther(depositAmount.toString());
+  const formattedDepositAmount = parseEther(
+    depositAmount === '' ? '0' : depositAmount
+  );
   const { contractAddress, abi } = useLendingCoreAddress();
   const { config, error } = usePrepareContractWrite({
     addressOrName: contractAddress,

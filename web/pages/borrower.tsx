@@ -1,4 +1,4 @@
-import { useState, ReactNode } from 'react';
+import { useState } from 'react';
 import { PrimaryButton } from '../components/primary-button';
 import { PlusIcon } from '../svg/plus-icon';
 import Image from 'next/image';
@@ -10,7 +10,6 @@ import {
   usePrepareContractWrite,
   useContractWrite,
 } from 'wagmi';
-import LendingCore from '../../artifacts/contracts/LendingCore.sol/LendingCore.json';
 import { MinusIcon } from '../svg/minux-icon';
 import { RepayIcon } from '../svg/repay-icon';
 import { DollarIcon } from '../svg/dollar-icon';
@@ -98,8 +97,6 @@ const Borrower = () => {
   const interestRate = BigNumber.from(10);
   const interestPaid = BigNumber.from(10);
 
-  console.log('currentBorrowAmount', currentBorrowAmount.toString());
-
   const totalBorrowAmount = currentBorrowAmount
     .add(parseEther(stringNumberOrZero(borrowAmount)))
     .sub(parseEther(stringNumberOrZero(repayAmount)));
@@ -113,12 +110,6 @@ const Borrower = () => {
       // Guard against divide by 0
       return;
     }
-
-    console.log(
-      'totalCollateralAmount',
-      formatEther(totalCollateralAmount.toString())
-    );
-    console.log('totalBorrowAmount', formatEther(totalBorrowAmount.toString()));
 
     return totalCollateralAmount
       .mul(collateralTokenPrice)

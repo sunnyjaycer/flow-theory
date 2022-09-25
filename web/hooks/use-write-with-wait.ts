@@ -17,6 +17,7 @@ export const useWriteWithWait = (
 
       const tx = await fn?.();
       if (tx === undefined) {
+        console.error('Error initiating transaction');
         setLoading(false);
         return;
       }

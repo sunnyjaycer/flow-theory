@@ -15,18 +15,17 @@ export const WithdrawDialog = ({
   closeDialog,
   onApprove,
 }: {
-  withdrawAmount: number;
-  setWithdrawAmount: Dispatch<SetStateAction<number>>;
+  withdrawAmount: string;
+  setWithdrawAmount: Dispatch<SetStateAction<string>>;
   maxWithdrawAmount: number;
   showDialog: boolean;
   closeDialog: VoidFunction;
   onApprove: VoidFunction;
 }) => {
-  const formattedWithdrawAmount = parseEther(withdrawAmount.toString());
-  const formattedMaxWithdrawAmount = Number(
-    formatEther(maxWithdrawAmount.toString())
+  const formattedWithdrawAmount = parseEther(
+    withdrawAmount === '' ? '0' : withdrawAmount
   );
-
+  const formattedMaxWithdrawAmount = formatEther(maxWithdrawAmount.toString());
   const { contractAddress, abi } = useLendingCoreAddress();
   const { config, error } = usePrepareContractWrite({
     addressOrName: contractAddress,

@@ -11,7 +11,7 @@ export const WithdrawConfirmationDialog = ({
   showDialog,
   closeDialog,
 }: {
-  withdrawAmount: number;
+  withdrawAmount: string;
   interestGained: number;
   showDialog: boolean;
   closeDialog: VoidFunction;
@@ -28,7 +28,7 @@ export const WithdrawConfirmationDialog = ({
             <Image src="/usdc-logo.png" width={50} height={50} alt="" />
           </div>
           <GradientText className="text-4xl font-bold mt-4">
-            {withdrawAmount.toFixed(DECIMALS)}
+            {withdrawAmount}
           </GradientText>
           <p className="font-thin text-blue--3 mb-4">${withdrawAmount}</p>
           <p className="font-bold text-lg">Interest Gained</p>
