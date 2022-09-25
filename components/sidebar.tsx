@@ -12,9 +12,6 @@ import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
 import { useTokenPrices } from '../hooks/use-token-prices';
 import { useInterestManagerAddress } from '../hooks/use-interest-manager-address';
 
-// sender: "0xcdccad1de51d4e2671e0930a0b7310042998c252"
-//         receiver: "0x86734dad0dc33fe712ec1179e60b09469e7fb83b"
-
 const GET_STREAMS = gql`
   query GetStreams($sender: ID!, $receiver: ID!) {
     streams(where: { sender: $sender, receiver: $receiver }) {
@@ -26,6 +23,24 @@ const GET_STREAMS = gql`
       updatedAtTimestamp
       currentFlowRate
       streamedUntilUpdatedAt
+    }
+  }
+`;
+
+const GET_ACCOUNT = gql`
+  query GetAccount($account: ID!) {
+    account(id: $account) {
+      subscriptions {
+        approved
+        id
+        totalAmountReceivedUntilUpdatedAt
+        indexValueUntilUpdatedAt
+        index {
+          totalSubscriptionsWithUnits
+          totalAmountDistributedUntilUpdatedAt
+          indexValue
+        }
+      }
     }
   }
 `;
@@ -48,7 +63,6 @@ export const Sidebar = () => {
 };
 
 const BorrowerSidebar = () => {
-  const currentDashboard = useCurrentDashboard();
   const { address } = useAccount();
   const { contractAddress: interestMaanagerAddress } =
     useInterestManagerAddress();
@@ -166,9 +180,8 @@ const BorrowerSidebar = () => {
   return (
     <div>
       <div className="font-bold text-blue--3">
-        {currentDashboard === 'borrower' ? (
-          <p className="mb-4">Collateral Ratio | {collateralRatio}</p>
-        ) : null}
+        <p className="mb-4">Collateral Ratio | {collateralRatio}</p>
+
         <p className="mb-4">Fixed APR | {fixedApr.toFixed(decimals)}</p>
         <h2 className="text-4xl font-thin mb-4 text-white">Interest Paid</h2>
         <Odometer start={interestPaid} rate={rate} />
@@ -176,21 +189,38 @@ const BorrowerSidebar = () => {
           <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
         </div>
 
-        {currentDashboard === 'borrower' ? (
-          <p>Rate: {getFormattedRate()}</p>
-        ) : null}
+        <p>Rate: {getFormattedRate()}</p>
       </div>
     </div>
   );
 };
 
 const LenderSidebar = () => {
+  const { address } = useAccount();
+
+  const {
+    loading,
+    error,
+    data: getAccountResult,
+  } = useQuery(GET_ACCOUNT, {
+    variables: {
+      account: address?.toLowerCase() ?? '', // LOWERCASE FOR SOME REASON LMAO
+    },
+  });
+
+  const totalAmountReceived =
+    getAccountResult?.account?.subscriptions?.[0]
+      .totalAmountReceivedUntilUpdatedAt;
+  const interestGained = Number(totalAmountReceived);
+  console.log('totalAmountReceived', totalAmountReceived);
+  console.log('interestGained', interestGained);
+
   return (
     <div>
       <div className="font-bold text-blue--3">
         <p className="mb-4">Fixed APR | {fixedApr.toFixed(decimals)}</p>
         <h2 className="text-4xl font-thin mb-4 text-white">Interest Gained</h2>
-        <Odometer start={0} rate={0} />
+        <Odometer start={interestGained} rate={0} />
         <div className="mb-4">
           <Image src="/usdc-logo.png" width={50} height={50} alt="USDC Logo" />
         </div>

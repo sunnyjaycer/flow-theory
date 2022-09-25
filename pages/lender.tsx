@@ -1,15 +1,18 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FancyDottedBox } from '../components/fancy-dotted-box';
 import { PrimaryButton } from '../components/primary-button';
 import { DepositConfirmationDialog } from '../modals/lender/deposit-confirmation-dialog';
 import { DepositDialog } from '../modals/lender/deposit-dialog';
 import { PlusIcon } from '../svg/plus-icon';
-import ERC20 from '../../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json';
+import ERC20 from '../artifacts/@openzeppelin/contracts/token/ERC20/ERC20.sol/ERC20.json';
 import {
   useAccount,
   useContractRead,
   useContractWrite,
+  useNetwork,
   usePrepareContractWrite,
+  useProvider,
+  useSigner,
 } from 'wagmi';
 import { useLendingCoreAddress } from '../hooks/use-lending-core-address';
 import { BigNumber, ethers } from 'ethers';
@@ -24,6 +27,12 @@ import { Loading } from '../components/loading';
 import { WithdrawConfirmationDialog } from '../modals/lender/withdraw-confirmation-dialog';
 import { useUsdcxAddress } from '../hooks/use-usdcx-address';
 import { useWriteWithWait } from '../hooks/use-write-with-wait';
+import {
+  IWeb3FlowOperatorData,
+  Framework,
+  IWeb3Subscription,
+} from '@superfluid-finance/sdk-core';
+import { useInterestManagerAddress } from '../hooks/use-interest-manager-address';
 
 type CurrentDialog =
   | 'depositDialog'
@@ -61,7 +70,6 @@ const Lender = () => {
 
   // TODO: This needs to come from contract
   const interestGained = 10;
-  console.log('fetchingAllowance', fetchingAllowance);
 
   if (fetchingAllowance) {
     return <Loading />;
@@ -115,6 +123,65 @@ const Lender = () => {
   );
 };
 
+const useSfIda = () => {
+  const { chain } = useNetwork();
+  const provider = useProvider();
+
+  const { address: owner } = useAccount();
+  const { data: signer } = useSigner();
+  const { contractAddress: usdcxAddress } = useUsdcxAddress();
+  const { contractAddress: interestManagerAddress } =
+    useInterestManagerAddress();
+  const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
+  const [subscriptionData, setSubscriptionData] = useState<IWeb3Subscription>();
+  const [createdIdaIndex, setCreatedIdaIndex] = useState(false);
+  const indexId = '0';
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    const func = async () => {
+      if (!owner) return;
+
+      const sf = await Framework.create({
+        chainId: chain?.id ?? provider.network.chainId,
+        provider: provider,
+      });
+
+      let data = await sf.idaV1.getSubscription({
+        superToken: usdcxAddress,
+        publisher: interestManagerAddress,
+        indexId,
+        subscriber: owner,
+        providerOrSigner: provider,
+      });
+      setSubscriptionData(data);
+    };
+    func();
+  }, [createdIdaIndex]);
+
+  const approveIdaSubscription = async () => {
+    if (signer == null) return;
+
+    setLoading(true);
+    const sf = await Framework.create({
+      chainId: chain?.id ?? 1,
+      provider: provider,
+    });
+
+    const tx = await sf.idaV1.approveSubscription({
+      indexId,
+      superToken: usdcxAddress,
+      publisher: interestManagerAddress,
+    });
+    const exec = await tx.exec(signer);
+    await exec.wait();
+    setCreatedIdaIndex(true);
+    setLoading(false);
+  };
+
+  return { subscriptionData, approveIdaSubscription, loading };
+};
+
 const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
   const { address: owner } = useAccount();
   const { contractAddress: lendingCoreAddress } = useLendingCoreAddress();
@@ -148,34 +215,58 @@ const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
     loading: loadingIncreaseAllowance,
   } = useWriteWithWait(increaseAllowance, refetch);
 
+  const {
+    subscriptionData,
+    approveIdaSubscription,
+    loading: approveIdaSubscriptionLoading,
+  } = useSfIda();
+
   if (loadingAllowance || loadingAllowance || increaseAllowance === undefined) {
     return <Loading />;
   }
+
+  const getPrimaryButton = () => {
+    if (allowance === 0) {
+      return (
+        <PrimaryButton
+          onClick={onClickIncreaseAllowance}
+          isLoading={loadingIncreaseAllowance}
+          disabled={loadingIncreaseAllowance}
+        >
+          <div className="flex items-center gap-2">Allow spending of USDCx</div>
+        </PrimaryButton>
+      );
+    } else if (!subscriptionData?.approved) {
+      return (
+        <PrimaryButton
+          onClick={approveIdaSubscription}
+          isLoading={approveIdaSubscriptionLoading}
+          disabled={approveIdaSubscriptionLoading}
+        >
+          <div className="flex items-center gap-2">
+            Subscribe for interest distribution
+          </div>
+        </PrimaryButton>
+      );
+    } else {
+      return (
+        <PrimaryButton onClick={openDialog}>
+          <div className="flex items-center gap-2">
+            <div className="mb-1">
+              <PlusIcon />
+            </div>
+            Deposit Collateral
+          </div>
+        </PrimaryButton>
+      );
+    }
+  };
 
   return (
     <FancyDottedBox>
       <div className="h-full flex gap-4 items-center">
         <p className="text-gray-400">Start depositing</p>
-        {allowance === 0 ? (
-          <PrimaryButton
-            onClick={onClickIncreaseAllowance}
-            isLoading={loadingIncreaseAllowance}
-            disabled={loadingIncreaseAllowance}
-          >
-            <div className="flex items-center gap-2">
-              Allow spending of USDCx
-            </div>
-          </PrimaryButton>
-        ) : (
-          <PrimaryButton onClick={openDialog}>
-            <div className="flex items-center gap-2">
-              <div className="mb-1">
-                <PlusIcon />
-              </div>
-              Deposit Collateral
-            </div>
-          </PrimaryButton>
-        )}
+        {getPrimaryButton()}
       </div>
     </FancyDottedBox>
   );
