@@ -6,6 +6,10 @@ import { useCurrentDashboard } from '../hooks/use-current-dashboard';
 export const DashboardSelector = () => {
   const currentDashboard = useCurrentDashboard();
 
+  if (currentDashboard === undefined) {
+    return null;
+  }
+
   return (
     <div className="font-bold flex gap-2 max-w-[150px]">
       <DashboardSelectorItem
