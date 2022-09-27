@@ -210,8 +210,8 @@ const LenderSidebar = () => {
 
   const totalAmountReceived =
     getAccountResult?.account?.subscriptions?.[0]
-      .totalAmountReceivedUntilUpdatedAt;
-  const interestGained = Number(totalAmountReceived);
+      ?.totalAmountReceivedUntilUpdatedAt;
+  const interestGained = Number(totalAmountReceived ?? 0);
   console.log('totalAmountReceived', totalAmountReceived);
   console.log('interestGained', interestGained);
 

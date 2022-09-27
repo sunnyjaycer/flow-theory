@@ -74,8 +74,8 @@ export const HeroImageText = () => {
           y2="0.5"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0751E0" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0751E0" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_260_2225"
@@ -85,8 +85,8 @@ export const HeroImageText = () => {
           y2="17.745"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0751E0" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0751E0" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
         <linearGradient
           id="paint2_linear_260_2225"
@@ -96,8 +96,8 @@ export const HeroImageText = () => {
           y2="44.6586"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0751E0" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0751E0" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
         <linearGradient
           id="paint3_linear_260_2225"
@@ -107,8 +107,8 @@ export const HeroImageText = () => {
           y2="33.9366"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0751E0" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0751E0" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
         <clipPath id="clip0_260_2225">
           <rect

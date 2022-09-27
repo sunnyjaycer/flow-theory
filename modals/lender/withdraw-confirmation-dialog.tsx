@@ -31,10 +31,10 @@ export const WithdrawConfirmationDialog = ({
             {withdrawAmount}
           </GradientText>
           <p className="font-thin text-blue--3 mb-4">${withdrawAmount}</p>
-          <p className="font-bold text-lg">Interest Gained</p>
+          {/* <p className="font-bold text-lg">Interest Gained</p>
           <p className="font-thin text-2xl">
             ${interestGained.toFixed(DECIMALS)}
-          </p>
+          </p> */}
         </DialogColumn>
         <div className="text-right">
           <PrimaryButton onClick={closeDialog}>👍 Got it</PrimaryButton>

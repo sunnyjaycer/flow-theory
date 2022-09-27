@@ -255,7 +255,7 @@ const NoLends = ({ openDialog }: { openDialog: VoidFunction }) => {
             <div className="mb-1">
               <PlusIcon />
             </div>
-            Deposit Collateral
+            Deposit Liquidity
           </div>
         </PrimaryButton>
       );

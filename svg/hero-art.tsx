@@ -32,8 +32,8 @@ export const HeroArt = () => {
           y2="30.8288"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0B50E1" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0B50E1" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
         <linearGradient
           id="paint1_linear_258_2200"
@@ -43,8 +43,8 @@ export const HeroArt = () => {
           y2="80.2493"
           gradientUnits="userSpaceOnUse"
         >
-          <stop stop-color="#0751E0" stop-opacity="0" />
-          <stop offset="1" stop-color="#8A2EFF" />
+          <stop stopColor="#0751E0" stopOpacity="0" />
+          <stop offset="1" stopColor="#8A2EFF" />
         </linearGradient>
       </defs>
     </svg>

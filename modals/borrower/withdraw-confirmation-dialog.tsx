@@ -26,6 +26,7 @@ export const WithdrawConfirmationDialog = ({
   const formattedWithdrawAmount = parseEther(
     withdrawAmount === '' ? '0' : withdrawAmount
   );
+  console.log('formattedWithdrawAmount', formattedWithdrawAmount.toString());
 
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
@@ -65,10 +66,10 @@ export const WithdrawConfirmationDialog = ({
         </DialogColumn>
       </div>
 
-      <div className="text-left mb-4">
+      {/* <div className="text-left mb-4">
         <p className="font-bold text-lg">Interest Paid</p>
         <p className="font-light text-3xl">{interestPaid.toString()} USDCx</p>
-      </div>
+      </div> */}
 
       <div className="flex justify-between">
         <SecondaryButton onClick={onBack}>Back</SecondaryButton>

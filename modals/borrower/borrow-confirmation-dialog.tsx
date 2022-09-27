@@ -95,6 +95,7 @@ export const BorrowConfirmationDialog = ({
     borrowAmount === '' ? '0' : borrowAmount
   );
   const { operatorData, grantSfPermissions } = useSfPermissions();
+  const sufficientPermissions = operatorData?.permissions === '7';
 
   const { contractAddress: lendingCoreAddress, abi: lendingCoreAbi } =
     useLendingCoreAddress();
@@ -103,13 +104,11 @@ export const BorrowConfirmationDialog = ({
     contractInterface: lendingCoreAbi,
     functionName: 'borrow',
     args: [parsedBorrowAmount],
-    enabled: showDialog,
+    enabled: showDialog && sufficientPermissions,
   });
   const { writeAsync: confirmBorrow } = useContractWrite(config);
   const { loading: confirmBorrowLoading, callWithWait: onClickConfirmBorrow } =
     useWriteWithWait(confirmBorrow, async () => closeDialog());
-
-  const sufficientPermissions = operatorData?.permissions === '7';
 
   // TODO: I want to clean this up by calling the contract directly.
   // This will allow for a ux improvement where page doesn't have to be refreshed after approval

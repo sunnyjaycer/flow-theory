@@ -52,12 +52,12 @@ export const RepayConfirmationDialog = ({
           <p className="font-thin text-blue--3 mb-4">
             ${repayAmount.toString()}
           </p>
-          <div className="mb-4">
+          {/* <div className="mb-4">
             <p className="font-bold text-lg">Interest Paid</p>
             <p className="font-light text-3xl">
               {interestPaid.toString()} USDCx
             </p>
-          </div>
+          </div> */}
         </DialogColumn>
       </div>
 
