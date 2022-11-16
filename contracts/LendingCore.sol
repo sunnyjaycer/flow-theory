@@ -240,7 +240,7 @@ contract LendingCore {
         require(getCollateralizationRatio(msg.sender) >= collateralizationRatio, "would be undercollateralized");
 
         // Transfer collateral back to borrower
-        collateralToken.transferFrom(msg.sender, address(this), withdrawAmount);
+        collateralToken.transferFrom(address(this), msg.sender, withdrawAmount);
 
     }
 
@@ -264,7 +264,7 @@ contract LendingCore {
     /// @notice Withdraw liquidity and lose interest distribution shares
     function withdrawLiquidity(uint256 withdrawAmount) public {
         // Update profile
-        lenderProfiles[msg.sender] += withdrawAmount;
+        lenderProfiles[msg.sender] -= withdrawAmount;
 
         // Update to amount of shares to lender to amount deposited
         interestManager.updateShares(lenderProfiles[msg.sender], msg.sender);

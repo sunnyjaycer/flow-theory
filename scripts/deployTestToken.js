@@ -12,13 +12,14 @@ async function main() {
 
     let alice;
     let bob;
+    let admin;
 
-    [alice, bob] = await ethers.getSigners();
+    [alice, bob, admin] = await ethers.getSigners();
 
     const wethFactory = await ethers.getContractFactory(
         TestToken.abi,
         TestToken.bytecode,
-        alice
+        admin
     )
 
     const weth = await wethFactory.deploy(

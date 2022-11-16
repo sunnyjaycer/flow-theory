@@ -4,8 +4,6 @@
 // You can also run a script with `npx hardhat run <script>`. If you do that, Hardhat
 // will compile your contracts, add the Hardhat Runtime Environment's members to the
 
-const { ethers } = require('hardhat');
-
 // global scope, and execute the script.
 const { ethers } = require("hardhat");
 const hre = require("hardhat");
@@ -51,7 +49,9 @@ async function main() {
   
   const weth = await ethers.getContractAt(
     "TestToken",
-    "0x5AF1c2B6275ECE07351Ab808dc54864f0f2747A1"
+    "0x5AF1c2B6275ECE07351Ab808dc54864f0f2747A1" // Goerli
+    // "0xdFEC82F5E4aaDFC0F68c9D38ab520DF08AfFaDC1" // Mumbai
+    // "0xf5Ef6A17B7C39442024d69c320A906C9cC84Dc78" // opGoerli
   );
 
   const lendingCoreFactory = await ethers.getContractFactory(

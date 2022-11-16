@@ -36,6 +36,33 @@ module.exports = {
         initialIndex: 0,
         count: 10
       }
+    },
+    mumbai: {
+      url: process.env.MUMBAI_URL,
+      accounts: {
+        mnemonic: process.env.BURNER_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+        initialIndex: 0,
+        count: 10
+      }
+    },
+    optimisticKovan: {
+      url: process.env.OPTIMISTIC_KOVAN_URL,
+      accounts: {
+        mnemonic: process.env.BURNER_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+        initialIndex: 0,
+        count: 10
+      }
+    },
+    optimisticGoerli: {
+      url: process.env.OPTIMISTIC_GOERLI_URL,
+      accounts: {
+        mnemonic: process.env.BURNER_MNEMONIC,
+        path: "m/44'/60'/0'/0",
+        initialIndex: 0,
+        count: 10
+      }
     }
   },
   mocha: {
@@ -43,7 +70,9 @@ module.exports = {
   },
   etherscan: {
     apiKey: {
-      goerli: process.env.ETHERSCAN_KEY
+      goerli: process.env.ETHERSCAN_KEY,
+      polygonMumbai: process.env.POLYGONSCAN_KEY,
+      optimisticKovan: process.env.OPTIMISMSCAN_KEY 
     }
   }
 };
